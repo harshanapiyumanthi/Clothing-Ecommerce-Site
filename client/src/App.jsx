@@ -4,6 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
+import AdminLayout from './layouts/AdminLayout';
 
 // Pages
 import Home from './pages/Home';
@@ -11,6 +12,7 @@ import Shop from './pages/Shop';
 import ProductDetails from './pages/ProductDetails';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
+import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -26,6 +28,9 @@ function App() {
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
         </Route>
+
+        {/* Admin Dashboard Routes */}
+        <Route path="/admin" element={<AdminDashboard />} />
 
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
