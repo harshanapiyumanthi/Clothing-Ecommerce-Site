@@ -5,30 +5,34 @@ const User = require('../models/User');
 const protect = async (req, res, next) => {
     let token;
 
-    if (
-        req.headers.authorization &&
-        req.headers.authorization.startsWith('Bearer')
-    ) {
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         try {
-            // Get token from header
             token = req.headers.authorization.split(' ')[1];
 
-            // Verify token
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_elegance_2026');
 
-            // Get user from the token (exclude password)
-            req.user = await User.findById(decoded.id).select('-password');
+            const user = await User.findById(decoded.id).select('-password');
 
-            next();
+            if (!user) {
+                return res.status(401).json({ success: false, message: 'User not found, token invalid' });
+            }
+
+            if (!user.isActive) {
+                return res.status(403).json({ success: false, message: 'Account has been deactivated' });
+            }
+
+            req.user = user;
+            return next();
         } catch (error) {
-            console.error(error);
-            res.status(401).json({ message: 'Not authorized, token failed' });
+            console.error('Auth middleware error:', error.message);
+            if (error.name === 'TokenExpiredError') {
+                return res.status(401).json({ success: false, message: 'Token has expired, please log in again' });
+            }
+            return res.status(401).json({ success: false, message: 'Not authorized, token failed' });
         }
     }
 
-    if (!token) {
-        res.status(401).json({ message: 'Not authorized, no token' });
-    }
+    return res.status(401).json({ success: false, message: 'Not authorized, no token provided' });
 };
 
 // Admin middleware - Check if user role is admin
@@ -36,8 +40,23 @@ const admin = (req, res, next) => {
     if (req.user && req.user.role === 'admin') {
         next();
     } else {
-        res.status(403).json({ message: 'Not authorized as an admin' });
+        res.status(403).json({ success: false, message: 'Access denied: Admin only' });
     }
 };
 
-module.exports = { protect, admin };
+// Optional auth — attaches user if token present, but doesn't block
+const optionalAuth = async (req, res, next) => {
+    let token;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        try {
+            token = req.headers.authorization.split(' ')[1];
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_elegance_2026');
+            req.user = await User.findById(decoded.id).select('-password');
+        } catch {
+            // Silently fail — user just won't be attached
+        }
+    }
+    next();
+};
+
+module.exports = { protect, admin, optionalAuth };
