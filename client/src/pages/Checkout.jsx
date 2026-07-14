@@ -9,7 +9,12 @@ const Checkout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const total = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0) + 15;
+  // Load coupon discount details
+  const couponData = JSON.parse(localStorage.getItem('checkout_coupon') || '{"code":"","discount":0}');
+  const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
+  const discount = couponData.discount || 0;
+  const shippingFee = subtotal > 0 ? 15 : 0;
+  const total = Math.max(0, subtotal - discount + shippingFee);
 
   const placeOrder = (e) => {
     e.preventDefault();
@@ -49,9 +54,9 @@ const Checkout = () => {
         phone
       },
       paymentMethod,
-      itemsPrice: total - 15,
-      shippingPrice: 15,
-      discount: 0,
+      itemsPrice: subtotal,
+      shippingPrice: shippingFee,
+      discount: discount,
       totalPrice: total,
       isPaid: paymentMethod === 'Stripe',
       paidAt: paymentMethod === 'Stripe' ? new Date().toISOString() : null,
@@ -62,6 +67,9 @@ const Checkout = () => {
     const currentOrders = JSON.parse(localStorage.getItem('admin_orders') || '[]');
     currentOrders.unshift(newOrder);
     localStorage.setItem('admin_orders', JSON.stringify(currentOrders));
+
+    // Clear coupon selection
+    localStorage.removeItem('checkout_coupon');
 
     dispatch(clearCart());
     navigate(`/order-success?orderId=${orderId}`);
@@ -127,14 +135,20 @@ const Checkout = () => {
               ))}
             </div>
             
-            <div className="border-t border-border-color pt-4 mb-6 space-y-2 text-sm">
-              <div className="flex justify-between opacity-80"><span>Subtotal</span><span>${(total - 15).toFixed(2)}</span></div>
-              <div className="flex justify-between opacity-80"><span>Shipping</span><span>$15.00</span></div>
+            <div className="border-t border-[var(--border-color)] pt-4 mb-6 space-y-2 text-xs">
+              <div className="flex justify-between opacity-80"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
+              {discount > 0 && (
+                <div className="flex justify-between text-gold font-semibold">
+                  <span>Discount ({couponData.code})</span>
+                  <span>-${discount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between opacity-80"><span>Shipping</span><span>${shippingFee.toFixed(2)}</span></div>
             </div>
             
-            <div className="flex justify-between items-center mb-8 font-bold text-lg">
-              <span>Total</span>
-              <span className="text-gold">${total.toFixed(2)}</span>
+            <div className="flex justify-between items-center mb-8 font-bold text-base border-t border-[var(--border-color)] pt-4">
+              <span className="uppercase tracking-wider">Total</span>
+              <span className="text-gold font-sans text-lg">${total.toFixed(2)}</span>
             </div>
             
             <button type="submit" className="w-full bg-gold text-white py-4 uppercase tracking-widest font-bold hover:bg-black transition-colors duration-300">

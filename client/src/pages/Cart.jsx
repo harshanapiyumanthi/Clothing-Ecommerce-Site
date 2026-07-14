@@ -1,16 +1,23 @@
+import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiTrash2, FiMinus, FiPlus, FiSliders } from 'react-icons/fi';
 import { addToCart, removeFromCart } from '../redux/slices/cartSlice';
+import { toast } from 'react-toastify';
 
 const Cart = () => {
   const { cartItems } = useSelector((state) => state.cart);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  // Coupon states
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState('');
+  const [discountAmount, setDiscountAmount] = useState(0);
+
   const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
   const deliveryFee = subtotal > 0 ? 15 : 0;
-  const total = subtotal + deliveryFee;
+  const total = Math.max(0, subtotal - discountAmount + deliveryFee);
 
   const updateQty = (item, qty) => {
     dispatch(addToCart({ ...item, qty }));
@@ -18,6 +25,30 @@ const Cart = () => {
 
   const removeItem = (item) => {
     dispatch(removeFromCart({ id: item.id, size: item.size, color: item.color }));
+  };
+
+  const handleApplyCoupon = () => {
+    const code = couponCode.trim().toUpperCase();
+    if (code === 'WELCOME10') {
+      setAppliedCoupon('WELCOME10');
+      setDiscountAmount(subtotal * 0.10);
+      toast.success('WELCOME10 coupon applied! 10% discount subtracted.');
+    } else if (code === 'GOLD20') {
+      setAppliedCoupon('GOLD20');
+      setDiscountAmount(subtotal * 0.20);
+      toast.success('GOLD20 coupon applied! 20% discount subtracted.');
+    } else {
+      toast.error('Invalid coupon code. Try GOLD20 or WELCOME10!');
+    }
+  };
+
+  const handleProceedToCheckout = () => {
+    // Save coupon specs to pass to checkout stage
+    localStorage.setItem('checkout_coupon', JSON.stringify({
+      code: appliedCoupon,
+      discount: discountAmount
+    }));
+    navigate('/checkout');
   };
 
   return (
@@ -116,28 +147,45 @@ const Cart = () => {
                   <span className="opacity-70">Subtotal</span>
                   <span className="font-medium">${subtotal.toFixed(2)}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-gold">
+                    <span>Discount ({appliedCoupon})</span>
+                    <span>-${discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="opacity-70">Delivery Fee</span>
                   <span className="font-medium">${deliveryFee.toFixed(2)}</span>
                 </div>
               </div>
               
-              <div className="mb-6 pb-6 border-b border-border-color">
-                <p className="text-sm opacity-70 mb-2">Have a coupon code?</p>
-                <div className="flex">
-                  <input type="text" placeholder="Enter code" className="flex-grow border border-border-color bg-transparent px-4 py-2 outline-none focus:border-gold" />
-                  <button className="bg-primary text-secondary px-4 py-2 text-sm uppercase tracking-wider hover:bg-gold transition-colors">Apply</button>
+              <div className="mb-6 pb-6 border-b border-border-color space-y-2">
+                <p className="text-xs opacity-70">Have a coupon code? (Try GOLD20 or WELCOME10)</p>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Enter code" 
+                    value={couponCode}
+                    onChange={e => setCouponCode(e.target.value)}
+                    className="flex-grow border border-border-color bg-transparent px-3 py-1.5 text-xs outline-none focus:border-gold rounded" 
+                  />
+                  <button 
+                    onClick={handleApplyCoupon}
+                    className="bg-gold hover:bg-black text-white px-4 py-1.5 text-xs uppercase tracking-wider transition-colors rounded cursor-pointer font-bold"
+                  >
+                    Apply
+                  </button>
                 </div>
               </div>
               
               <div className="flex justify-between items-center mb-8">
-                <span className="text-lg font-bold">Grand Total</span>
-                <span className="text-2xl font-bold text-gold">${total.toFixed(2)}</span>
+                <span className="text-sm font-bold uppercase tracking-wider">Grand Total</span>
+                <span className="text-xl font-bold text-gold font-sans">${total.toFixed(2)}</span>
               </div>
               
               <button 
-                onClick={() => navigate('/checkout')}
-                className="w-full bg-gold text-white py-4 uppercase tracking-widest font-bold hover:bg-black transition-colors duration-300"
+                onClick={handleProceedToCheckout}
+                className="w-full bg-gold text-white py-3.5 uppercase tracking-widest text-xs font-bold hover:bg-black transition-colors duration-300 rounded cursor-pointer"
               >
                 Proceed to Checkout
               </button>

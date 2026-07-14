@@ -47,11 +47,17 @@ const ProductDetails = () => {
   const [accessories, setAccessories] = useState([]);
   const [selectedAccessories, setSelectedAccessories] = useState([]);
 
+  // Reviews & ratings state
+  const [reviewsList, setReviewsList] = useState([]);
+  const [newReviewText, setNewReviewText] = useState('');
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null');
+
   useEffect(() => {
     // Fetch products
     const products = JSON.parse(localStorage.getItem('admin_products') || '[]');
     // Try matching param ID
-    let found = products.find(p => p.id === id);
+    let found = products.find(p => p.id.toString() === id.toString());
     if (!found) {
       // Fallback to prod-1 or mock product details
       found = products[0] || {
@@ -72,6 +78,19 @@ const ProductDetails = () => {
     if (found.colors?.length > 0) {
       setSelectedColor(found.colors[0]);
     }
+
+    // Log to recently viewed
+    if (found && found.id) {
+      let rv = JSON.parse(localStorage.getItem('recently_viewed') || '[]');
+      rv = rv.filter(item => item.toString() !== found.id.toString());
+      rv.unshift(found.id);
+      localStorage.setItem('recently_viewed', JSON.stringify(rv.slice(0, 8)));
+    }
+
+    // Load reviews
+    const savedReviews = JSON.parse(localStorage.getItem(`product_reviews_${found.id}`) || '[]');
+    setReviewsList(savedReviews);
+
     setLoading(false);
   }, [id]);
 
@@ -176,6 +195,23 @@ const ProductDetails = () => {
   const handleAddLook = () => {
     const itemsToAdd = accessories.filter(a => selectedAccessories.includes(a.id));
     finalizeCartAdd(itemsToAdd);
+  };
+
+  const handleReviewSubmit = (e) => {
+    e.preventDefault();
+    if (!newReviewText.trim()) return;
+    const newRev = {
+      id: `rev-${Date.now()}`,
+      name: userInfo?.name || 'Anonymous Guest',
+      rating: newReviewRating,
+      text: newReviewText,
+      date: new Date().toLocaleDateString()
+    };
+    const updated = [newRev, ...reviewsList];
+    setReviewsList(updated);
+    localStorage.setItem(`product_reviews_${product.id}`, JSON.stringify(updated));
+    setNewReviewText('');
+    toast.success('Thank you for your premium rating review!');
   };
 
   if (loading) {
@@ -604,6 +640,88 @@ const ProductDetails = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Customer Reviews & Rating section */}
+      <section className="border-t border-[var(--border-color)] pt-16 mt-16 space-y-12">
+        <div className="text-center space-y-2">
+          <h3 className="text-2xl font-bold uppercase tracking-widest">Customer Reviews</h3>
+          <div className="h-0.5 w-16 bg-gold mx-auto"></div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start">
+          
+          {/* Reviews List */}
+          <div className="lg:col-span-3 space-y-6">
+            <h4 className="font-bold text-xs uppercase tracking-wider text-gray-500">Verified Reviews ({reviewsList.length})</h4>
+            {reviewsList.length === 0 ? (
+              <p className="text-xs text-gray-400 py-6">No reviews have been written for this product yet. Be the first to share your thoughts!</p>
+            ) : (
+              <div className="space-y-6">
+                {reviewsList.map(rev => (
+                  <div key={rev.id} className="border-b border-[var(--border-color)] pb-6 space-y-2 text-xs">
+                    <div className="flex justify-between items-center">
+                      <p className="font-bold text-[var(--text-color)]">{rev.name}</p>
+                      <span className="text-[10px] text-gray-400 font-mono">{rev.date}</span>
+                    </div>
+                    {/* Stars */}
+                    <div className="flex gap-0.5 text-gold">
+                      {[...Array(5)].map((_, i) => (
+                        <FiStar key={i} size={12} fill={i < rev.rating ? 'currentColor' : 'none'} />
+                      ))}
+                    </div>
+                    <p className="text-gray-500 leading-relaxed max-w-xl">{rev.text}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Write a Review Form */}
+          <div className="lg:col-span-2 bg-[var(--card-bg)] border border-[var(--border-color)] p-6 rounded-xl space-y-4">
+            <h4 className="font-bold text-xs uppercase tracking-wider">Share Your Thoughts</h4>
+            <form onSubmit={handleReviewSubmit} className="space-y-4 text-xs">
+              
+              {/* Star Rating Select */}
+              <div className="space-y-1.5">
+                <label className="font-semibold text-gray-500">Overall Rating</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map(val => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setNewReviewRating(val)}
+                      className={`h-8 w-8 rounded border flex items-center justify-center transition-colors cursor-pointer ${newReviewRating === val ? 'bg-gold border-gold text-white' : 'border-[var(--border-color)] hover:border-gold hover:text-gold'}`}
+                    >
+                      <FiStar size={14} fill={newReviewRating >= val ? 'currentColor' : 'none'} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Review Text */}
+              <div className="space-y-1.5">
+                <label className="font-semibold text-gray-500">Your Review</label>
+                <textarea
+                  rows="4"
+                  required
+                  placeholder="Describe your purchase: sizing details, fabric feel, or design accuracy..."
+                  value={newReviewText}
+                  onChange={e => setNewReviewText(e.target.value)}
+                  className="w-full border border-[var(--border-color)] bg-transparent p-3 outline-none focus:border-gold rounded-lg resize-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-gold hover:bg-black text-white font-bold uppercase tracking-widest transition-colors cursor-pointer"
+              >
+                Submit Review
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </section>
 
     </div>
   );

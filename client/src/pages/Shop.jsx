@@ -1,83 +1,190 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-
-// Mock Data
-const MOCK_PRODUCTS = [
-  { id: 1, name: 'Silk Evening Gown', price: 299, category: 'Women', image: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?q=80&w=2071&auto=format&fit=crop' },
-  { id: 2, name: 'Classic Office Blazer', price: 149, category: 'Office', image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=1936&auto=format&fit=crop' },
-  { id: 3, name: 'Designer Handbag', price: 499, category: 'Accessories', image: 'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=1915&auto=format&fit=crop' },
-  { id: 4, name: 'Casual Denim Jacket', price: 89, category: 'Casual', image: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?q=80&w=2070&auto=format&fit=crop' },
-];
+import { useState, useEffect } from 'react';
+import { useLocation, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Shop = () => {
-  const [filter, setFilter] = useState('All');
+  const location = useLocation();
+  const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Filters State
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [maxPrice, setMaxPrice] = useState(1000);
+  const [sortOption, setSortOption] = useState('Latest');
+
+  // Check URL category query param
+  const queryParams = new URLSearchParams(location.search);
+  const urlCategory = queryParams.get('category');
+
+  useEffect(() => {
+    // Load products from local storage database
+    const dbProducts = JSON.parse(localStorage.getItem('admin_products') || '[]');
+    setProducts(dbProducts);
+
+    if (urlCategory) {
+      setSelectedCategory(urlCategory);
+    }
+
+    // Simulate luxury loader latency
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [urlCategory]);
+
+  useEffect(() => {
+    let result = [...products];
+
+    // Category Filter
+    if (selectedCategory !== 'All') {
+      result = result.filter(p => p.category?.toLowerCase() === selectedCategory.toLowerCase());
+    }
+
+    // Price Filter
+    result = result.filter(p => p.price <= maxPrice);
+
+    // Sorting
+    if (sortOption === 'Price: Low to High') {
+      result.sort((a, b) => a.price - b.price);
+    } else if (sortOption === 'Price: High to Low') {
+      result.sort((a, b) => b.price - a.price);
+    } else {
+      // Sort by Latest (or fallback order)
+      result.sort((a, b) => (b.id || 0) - (a.id || 0));
+    }
+
+    setFilteredProducts(result);
+  }, [products, selectedCategory, maxPrice, sortOption]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-8">
         
         {/* Sidebar Filters */}
-        <aside className="w-full md:w-64 flex-shrink-0">
-          <h2 className="text-xl font-bold uppercase tracking-widest mb-6 border-b border-border-color pb-2">Filters</h2>
-          
-          <div className="mb-8">
-            <h3 className="font-semibold mb-3">Category</h3>
-            <ul className="space-y-2 text-sm opacity-80">
-              {['All', 'Women', 'Teen', 'Office', 'Casual', 'Sarees', 'Accessories'].map(cat => (
-                <li key={cat}>
-                  <label className="flex items-center gap-2 cursor-pointer hover:text-gold transition-colors">
-                    <input type="radio" name="category" checked={filter === cat} onChange={() => setFilter(cat)} className="accent-gold" />
-                    {cat}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </div>
-          
-          {/* Price Filter Placeholder */}
+        <aside className="w-full lg:w-64 flex-shrink-0 space-y-8">
           <div>
-            <h3 className="font-semibold mb-3">Price Range</h3>
-            <input type="range" min="0" max="1000" className="w-full accent-gold" />
-            <div className="flex justify-between text-xs opacity-60 mt-2">
-              <span>$0</span>
-              <span>$1000+</span>
+            <h2 className="text-lg font-bold uppercase tracking-widest mb-4 border-b border-[var(--border-color)] pb-2 text-[var(--text-color)]">
+              Filters
+            </h2>
+            
+            <div className="space-y-6">
+              {/* Category */}
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gold mb-3">Category</h3>
+                <div className="flex flex-wrap lg:flex-col gap-2 lg:gap-3">
+                  {['All', 'Women', 'Teen', 'Office', 'Casual', 'Sarees', 'Accessories'].map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`text-left text-xs uppercase tracking-wider transition-colors cursor-pointer ${selectedCategory === cat ? 'font-bold text-gold' : 'text-gray-400 hover:text-gold'}`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Price Range */}
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gold mb-3">Max Price</h3>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="1500" 
+                  step="50"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(Number(e.target.value))}
+                  className="w-full accent-gold bg-gray-200 dark:bg-gray-800 h-1 rounded-lg cursor-pointer" 
+                />
+                <div className="flex justify-between text-[10px] text-gray-400 mt-2 font-mono">
+                  <span>$0</span>
+                  <span className="font-semibold text-gold">${maxPrice}</span>
+                  <span>$1500+</span>
+                </div>
+              </div>
             </div>
           </div>
         </aside>
 
-        {/* Product Grid */}
-        <div className="flex-grow">
-          <div className="flex justify-between items-center mb-6">
-            <span className="text-sm opacity-60">Showing results</span>
-            <select className="bg-transparent border border-border-color px-4 py-2 text-sm outline-none focus:border-gold">
-              <option>Sort by Latest</option>
-              <option>Price: Low to High</option>
-              <option>Price: High to Low</option>
+        {/* Product Grid Area */}
+        <div className="flex-grow space-y-6">
+          
+          {/* Header toolbar */}
+          <div className="flex justify-between items-center border-b border-[var(--border-color)] pb-4 gap-4">
+            <span className="text-xs text-gray-500 font-mono">
+              {filteredProducts.length} results found
+            </span>
+            
+            <select 
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="bg-transparent border border-[var(--border-color)] px-4 py-2 text-xs uppercase tracking-wider outline-none focus:border-gold cursor-pointer"
+            >
+              <option value="Latest">Sort by Latest</option>
+              <option value="Price: Low to High">Price: Low to High</option>
+              <option value="Price: High to Low">Price: High to Low</option>
             </select>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {MOCK_PRODUCTS.filter(p => filter === 'All' || p.category === filter).map((product, index) => (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-                key={product.id} 
-                className="group cursor-pointer"
-              >
-                <div className="relative h-80 overflow-hidden bg-gray-100 mb-4">
-                  <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
-                    <button className="bg-white text-black px-6 py-2 text-sm uppercase tracking-wider hover:bg-gold hover:text-white transition-colors shadow-lg">
-                      View Details
-                    </button>
-                  </div>
+          {/* Catalog Grid */}
+          {loading ? (
+            // Loading Skeletons
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="flex flex-col space-y-3 animate-pulse">
+                  <div className="h-80 bg-gray-200 dark:bg-gray-800 rounded-lg"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-2/3"></div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/4"></div>
                 </div>
-                <h3 className="font-medium text-lg mb-1">{product.name}</h3>
-                <p className="text-gold font-semibold">${product.price}</p>
-              </motion.div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <AnimatePresence mode="popLayout">
+              {filteredProducts.length === 0 ? (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-24 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl"
+                >
+                  <p className="text-xs text-gray-400">No items match your selected filters.</p>
+                </motion.div>
+              ) : (
+                <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredProducts.map((product, idx) => (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.4, delay: idx * 0.05 }}
+                      key={product.id}
+                      className="group flex flex-col space-y-3"
+                    >
+                      <Link to={`/product/${product.id}`} className="block relative h-80 overflow-hidden bg-gray-100 border border-[var(--border-color)]">
+                        <img 
+                          src={product.image} 
+                          alt={product.name} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                        />
+                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
+                          <span className="bg-white text-black px-6 py-2.5 text-xs uppercase tracking-widest font-bold hover:bg-gold hover:text-white transition-all shadow-lg">
+                            View Details
+                          </span>
+                        </div>
+                      </Link>
+                      <div>
+                        <h3 className="font-semibold text-sm text-[var(--text-color)]">{product.name}</h3>
+                        <p className="text-xs text-gold font-bold font-sans mt-0.5">${product.price}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
+
         </div>
       </div>
     </div>
