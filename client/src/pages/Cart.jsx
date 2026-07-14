@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiTrash2, FiMinus, FiPlus } from 'react-icons/fi';
+import { FiTrash2, FiMinus, FiPlus, FiSliders } from 'react-icons/fi';
 import { addToCart, removeFromCart } from '../redux/slices/cartSlice';
 
 const Cart = () => {
@@ -26,7 +26,7 @@ const Cart = () => {
       
       {cartItems.length === 0 ? (
         <div className="text-center py-20">
-          <p className="text-lg opacity-60 mb-6">Your shopping cart is currently empty.</p>
+          <p className="text-lg opacity-60 mb-6">Your shopping shopping cart is currently empty.</p>
           <Link to="/shop" className="bg-primary text-secondary px-8 py-4 uppercase tracking-widest text-sm hover:bg-gold transition-colors duration-300">
             Continue Shopping
           </Link>
@@ -49,8 +49,36 @@ const Cart = () => {
                   <div className="col-span-1 md:col-span-6 flex gap-4">
                     <img src={item.image} alt={item.name} className="w-24 h-32 object-cover bg-gray-100" />
                     <div className="flex flex-col justify-center">
-                      <Link to={`/product/${item.id}`} className="font-semibold text-lg hover:text-gold transition-colors">{item.name}</Link>
+                      <Link to={`/product/${item.productId || item.id}`} className="font-semibold text-lg hover:text-gold transition-colors">{item.name}</Link>
                       <p className="text-sm opacity-60 mt-1">Size: {item.size} | Color: {item.color}</p>
+                      
+                      {item.isCustom && item.customization && (
+                        <div className="mt-2 text-xs bg-gold/10 text-gold/90 p-2.5 rounded border border-gold/20 space-y-1 max-w-sm">
+                          <p className="font-bold uppercase tracking-wider text-[9px] text-gold border-b border-gold/15 pb-1 flex items-center gap-1">
+                            <FiSliders size={12} /> Custom Specs
+                          </p>
+                          <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px]">
+                            <p>Fabric: <span className="font-semibold text-gray-800 dark:text-gray-150">{item.customization.fabric}</span></p>
+                            <p>Sleeve: <span className="font-semibold text-gray-800 dark:text-gray-150">{item.customization.sleeveDesign}</span></p>
+                            <p>Neck: <span className="font-semibold text-gray-800 dark:text-gray-150">{item.customization.neckDesign}</span></p>
+                            <p>Length: <span className="font-semibold text-gray-800 dark:text-gray-150">{item.customization.dressLength}</span></p>
+                          </div>
+                          {item.customization.sizeType === 'Custom' && item.customization.measurements ? (
+                            <div className="pt-1 mt-1 border-t border-gold/10 text-[9px] grid grid-cols-3 gap-0.5 opacity-85">
+                              <span>Bust: {item.customization.measurements.bust}"</span>
+                              <span>Waist: {item.customization.measurements.waist}"</span>
+                              <span>Hip: {item.customization.measurements.hip}"</span>
+                              <span>Shldr: {item.customization.measurements.shoulder}"</span>
+                              <span>Slv: {item.customization.measurements.sleeve}"</span>
+                              <span>Len: {item.customization.measurements.length}"</span>
+                            </div>
+                          ) : (
+                            <p className="text-[9px] opacity-85">Size: Standard {item.customization.standardSize}</p>
+                          )}
+                          <p className="text-[8px] italic opacity-75 mt-1 font-semibold">Custom production takes ~5 weeks.</p>
+                        </div>
+                      )}
+
                       <button onClick={() => removeItem(item)} className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 mt-3 w-max transition-colors">
                         <FiTrash2 /> Remove
                       </button>

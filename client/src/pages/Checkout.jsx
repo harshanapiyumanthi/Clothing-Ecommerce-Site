@@ -13,9 +13,58 @@ const Checkout = () => {
 
   const placeOrder = (e) => {
     e.preventDefault();
-    // Simulate API call to save order
+    const formData = new FormData(e.target);
+    const firstName = formData.get('firstName');
+    const lastName = formData.get('lastName');
+    const address = formData.get('address');
+    const city = formData.get('city');
+    const postalCode = formData.get('postalCode');
+    const phone = formData.get('phone');
+
+    const orderId = 'ord-' + Date.now().toString().slice(-4);
+
+    const newOrder = {
+      id: orderId,
+      user: {
+        name: `${firstName} ${lastName}`,
+        email: 'customer@gmail.com'
+      },
+      orderItems: cartItems.map(item => ({
+        product: item.productId || item.id,
+        name: item.name,
+        price: item.price,
+        image: item.image,
+        qty: item.qty,
+        size: item.size,
+        color: item.color,
+        isCustom: item.isCustom || false,
+        customization: item.customization || null
+      })),
+      shippingAddress: {
+        fullName: `${firstName} ${lastName}`,
+        address,
+        city,
+        postalCode,
+        country: 'Sri Lanka',
+        phone
+      },
+      paymentMethod,
+      itemsPrice: total - 15,
+      shippingPrice: 15,
+      discount: 0,
+      totalPrice: total,
+      isPaid: paymentMethod === 'Stripe',
+      paidAt: paymentMethod === 'Stripe' ? new Date().toISOString() : null,
+      orderStatus: 'Order Received',
+      createdAt: new Date().toISOString()
+    };
+
+    const currentOrders = JSON.parse(localStorage.getItem('admin_orders') || '[]');
+    currentOrders.unshift(newOrder);
+    localStorage.setItem('admin_orders', JSON.stringify(currentOrders));
+
     dispatch(clearCart());
-    navigate('/order-success');
+    navigate(`/order-success?orderId=${orderId}`);
   };
 
   return (
@@ -30,12 +79,12 @@ const Checkout = () => {
           <div>
             <h2 className="text-xl font-semibold uppercase tracking-wider mb-6 border-b border-border-color pb-2">Delivery Address</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input type="text" placeholder="First Name" required className="border border-border-color bg-transparent px-4 py-3 outline-none focus:border-gold" />
-              <input type="text" placeholder="Last Name" required className="border border-border-color bg-transparent px-4 py-3 outline-none focus:border-gold" />
-              <input type="text" placeholder="Address Line 1" required className="col-span-1 md:col-span-2 border border-border-color bg-transparent px-4 py-3 outline-none focus:border-gold" />
-              <input type="text" placeholder="City" required className="border border-border-color bg-transparent px-4 py-3 outline-none focus:border-gold" />
-              <input type="text" placeholder="Postal Code" required className="border border-border-color bg-transparent px-4 py-3 outline-none focus:border-gold" />
-              <input type="tel" placeholder="Phone Number" required className="col-span-1 md:col-span-2 border border-border-color bg-transparent px-4 py-3 outline-none focus:border-gold" />
+              <input type="text" name="firstName" placeholder="First Name" required className="border border-border-color bg-transparent px-4 py-3 outline-none focus:border-gold" />
+              <input type="text" name="lastName" placeholder="Last Name" required className="border border-border-color bg-transparent px-4 py-3 outline-none focus:border-gold" />
+              <input type="text" name="address" placeholder="Address Line 1" required className="col-span-1 md:col-span-2 border border-border-color bg-transparent px-4 py-3 outline-none focus:border-gold" />
+              <input type="text" name="city" placeholder="City" required className="border border-border-color bg-transparent px-4 py-3 outline-none focus:border-gold" />
+              <input type="text" name="postalCode" placeholder="Postal Code" required className="border border-border-color bg-transparent px-4 py-3 outline-none focus:border-gold" />
+              <input type="tel" name="phone" placeholder="Phone Number" required className="col-span-1 md:col-span-2 border border-border-color bg-transparent px-4 py-3 outline-none focus:border-gold" />
             </div>
           </div>
           
@@ -52,7 +101,7 @@ const Checkout = () => {
               </label>
             </div>
           </div>
-
+ 
         </div>
         
         {/* Order Summary Sidebar */}
@@ -70,6 +119,9 @@ const Checkout = () => {
                   <div className="flex-grow">
                     <p className="text-sm font-medium line-clamp-1">{item.name}</p>
                     <p className="text-xs opacity-60 text-gold font-semibold">${item.price}</p>
+                    {item.isCustom && item.customization && (
+                      <p className="text-[10px] text-gold font-semibold mt-0.5">Bespoke Custom Spec</p>
+                    )}
                   </div>
                 </div>
               ))}

@@ -3,7 +3,19 @@ import { FiSearch, FiShoppingCart, FiEye, FiCheck, FiSliders, FiX, FiPrinter, Fi
 import { adminApi } from '../../utils/adminApi';
 import { toast } from 'react-toastify';
 
-const STATUS_OPTIONS = ['Pending', 'Processing', 'Shipping', 'Delivered', 'Cancelled'];
+const STATUS_OPTIONS = [
+  'Pending',
+  'Processing',
+  'Shipping',
+  'Delivered',
+  'Cancelled',
+  'Order Received',
+  'Design Review',
+  'Fabric Preparation',
+  'Tailoring',
+  'Quality Check',
+  'Ready For Delivery'
+];
 
 const OrderManager = () => {
   const [orders, setOrders] = useState([]);
@@ -53,12 +65,24 @@ const OrderManager = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Pending': return 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-900/55';
-      case 'Processing': return 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-900/55';
-      case 'Shipping': return 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-900/55';
-      case 'Delivered': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/55';
-      case 'Cancelled': return 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-900/55';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700';
+      case 'Pending':
+      case 'Order Received':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-900/55';
+      case 'Processing':
+      case 'Design Review':
+      case 'Fabric Preparation':
+      case 'Tailoring':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-900/55';
+      case 'Shipping':
+      case 'Quality Check':
+      case 'Ready For Delivery':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-900/55';
+      case 'Delivered':
+        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/55';
+      case 'Cancelled':
+        return 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-900/55';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700';
     }
   };
 
@@ -400,6 +424,67 @@ const OrderManager = () => {
                   <span className="text-gold font-sans">${selectedOrder.totalPrice}</span>
                 </div>
               </div>
+
+              {/* Custom Tailoring Specs block if order contains customized products */}
+              {selectedOrder.orderItems.some(item => item.isCustom) && (
+                <div className="space-y-3 border-t border-[var(--border-color)] pt-4">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-gold flex items-center gap-1.5">
+                    <FiSliders /> Custom Tailoring Specs
+                  </h4>
+                  <div className="space-y-4 max-h-56 overflow-y-auto">
+                    {selectedOrder.orderItems.filter(item => item.isCustom).map((item, idx) => (
+                      <div key={idx} className="bg-gold/5 border border-gold/25 p-3 rounded-lg space-y-2 text-xs">
+                        <div className="font-bold text-gold uppercase border-b border-gold/15 pb-1">{item.name}</div>
+                        {item.customization && (
+                          <>
+                            <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
+                              <p><span className="text-gray-500">Fabric:</span> <strong>{item.customization.fabric}</strong></p>
+                              <p><span className="text-gray-500">Color Spec:</span> <strong>{item.customization.color}</strong></p>
+                              <p><span className="text-gray-500">Neckline:</span> <strong>{item.customization.neckDesign}</strong></p>
+                              <p><span className="text-gray-500">Sleeves:</span> <strong>{item.customization.sleeveDesign}</strong></p>
+                              <p><span className="text-gray-500">Length:</span> <strong>{item.customization.dressLength}</strong></p>
+                              <p><span className="text-gray-500">Fit:</span> <strong>{item.customization.fit}</strong></p>
+                            </div>
+                            
+                            {item.customization.sizeType === 'Custom' && item.customization.measurements ? (
+                              <div className="bg-white dark:bg-black/35 p-2 rounded border border-gold/10 mt-1">
+                                <p className="font-bold text-[9px] uppercase tracking-wider text-gold mb-1">Measurements (in)</p>
+                                <div className="grid grid-cols-3 gap-1 text-[10px]">
+                                  <span>Bust: <strong>{item.customization.measurements.bust}"</strong></span>
+                                  <span>Waist: <strong>{item.customization.measurements.waist}"</strong></span>
+                                  <span>Hip: <strong>{item.customization.measurements.hip}"</strong></span>
+                                  <span>Shoulder: <strong>{item.customization.measurements.shoulder}"</strong></span>
+                                  <span>Sleeve: <strong>{item.customization.measurements.sleeve}"</strong></span>
+                                  <span>Length: <strong>{item.customization.measurements.length}"</strong></span>
+                                </div>
+                              </div>
+                            ) : (
+                              <p><span className="text-gray-500">Sizing:</span> <strong>Standard Size {item.customization.standardSize}</strong></p>
+                            )}
+
+                            {/* Reference Links */}
+                            {(item.customization.inspirationUrl || item.customization.sketchUrl || item.customization.pinterestUrl) && (
+                              <div className="pt-1.5 mt-1 border-t border-gold/15 text-[10px] space-y-1">
+                                <p className="font-bold text-[8px] uppercase tracking-wider text-gold">Design References</p>
+                                {item.customization.inspirationUrl && <a href={item.customization.inspirationUrl} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline block truncate">Inspiration Image URL</a>}
+                                {item.customization.sketchUrl && <a href={item.customization.sketchUrl} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline block truncate">Sketch Image URL</a>}
+                                {item.customization.pinterestUrl && <a href={item.customization.pinterestUrl} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline block truncate">Pinterest Link URL</a>}
+                              </div>
+                            )}
+
+                            {item.customization.specialInstructions && (
+                              <div className="pt-1 mt-1 border-t border-gold/15 text-[10px]">
+                                <p className="font-bold text-[8px] uppercase tracking-wider text-gold">Special Instructions</p>
+                                <p className="italic opacity-85">{item.customization.specialInstructions}</p>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Status Update Form Form */}
               <form onSubmit={handleUpdateOrder} className="border-t border-[var(--border-color)] pt-4 space-y-4">
