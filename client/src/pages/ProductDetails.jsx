@@ -23,10 +23,12 @@ const ProductDetails = () => {
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [fabric, setFabric] = useState('Georgette Silk');
   const [customColor, setCustomColor] = useState('');
+  const [pattern, setPattern] = useState('Solid');
   const [neckDesign, setNeckDesign] = useState('Boat Neck');
   const [sleeveDesign, setSleeveDesign] = useState('Short Sleeves');
   const [dressLength, setDressLength] = useState('Midi');
   const [fit, setFit] = useState('Regular Fit');
+  const [buttons, setButtons] = useState('None');
   const [useCustomMeasurements, setUseCustomMeasurements] = useState(false);
   
   // Custom measurements
@@ -34,14 +36,21 @@ const ProductDetails = () => {
   const [waist, setWaist] = useState('');
   const [hip, setHip] = useState('');
   const [shoulder, setShoulder] = useState('');
-  const [sleeve, setSleeve] = useState('');
-  const [length, setLength] = useState('');
+  const [neckSize, setNeckSize] = useState('');
+  const [sleeveLength, setSleeveLength] = useState('');
+  const [armHole, setArmHole] = useState('');
+  const [dressLengthCustom, setDressLengthCustom] = useState('');
+  const [height, setHeight] = useState('');
+  const [weight, setWeight] = useState('');
   
-  // Upload references (URLs for simplicity in mock backend uploads)
+  // Upload references
+  const [referenceImageUrl, setReferenceImageUrl] = useState('');
   const [inspirationUrl, setInspirationUrl] = useState('');
   const [sketchUrl, setSketchUrl] = useState('');
   const [pinterestUrl, setPinterestUrl] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
+  
+  const [showSizeGuideModal, setShowSizeGuideModal] = useState(false);
 
   // Complete The Look popup state
   const [showLookModal, setShowLookModal] = useState(false);
@@ -146,21 +155,55 @@ const ProductDetails = () => {
     setShowLookModal(true);
   };
 
+  const getCustomSurcharge = () => {
+    let extra = 0;
+    if (fabric === 'Silk Velvet') extra += 40;
+    else if (fabric === 'Georgette Silk') extra += 20;
+    else if (fabric === 'Merino Wool') extra += 30;
+    else if (fabric === 'Premium Cotton') extra += 10;
+    else if (fabric === 'Heavy Duty Linen') extra += 15;
+
+    if (sleeveDesign === 'Puff Sleeves') extra += 10;
+    else if (sleeveDesign === 'Long Sleeves') extra += 15;
+    else if (sleeveDesign === 'Three-Quarter') extra += 10;
+
+    if (buttons === 'Pearl Buttons') extra += 15;
+    else if (buttons === 'Metallic Buttons') extra += 10;
+    else if (buttons === 'Wooden Buttons') extra += 5;
+
+    if (useCustomMeasurements) extra += 30;
+    return extra;
+  };
+
   const finalizeCartAdd = (includeAccessories = []) => {
     const isCustom = showCustomizer;
-    const finalPrice = isCustom ? product.price + 50 : product.price; // $50 customization surcharge
+    const finalPrice = isCustom ? product.price + getCustomSurcharge() : product.price;
     const itemId = isCustom ? `${product.id}-custom-${Date.now()}` : product.id;
 
     const customizationData = isCustom ? {
       fabric,
       color: customColor || selectedColor,
+      pattern,
       neckDesign,
       sleeveDesign,
       dressLength,
       fit,
+      buttons,
       sizeType: useCustomMeasurements ? 'Custom' : 'Standard',
       standardSize: useCustomMeasurements ? null : selectedSize,
-      measurements: useCustomMeasurements ? { bust, waist, hip, shoulder, sleeve, length } : null,
+      measurements: useCustomMeasurements ? { 
+        bust, 
+        waist, 
+        hip, 
+        shoulder, 
+        neck: neckSize, 
+        sleeveLength, 
+        armHole, 
+        dressLength: dressLengthCustom, 
+        height, 
+        weight 
+      } : null,
+      referenceImageUrl,
       inspirationUrl,
       sketchUrl,
       pinterestUrl,
@@ -174,6 +217,7 @@ const ProductDetails = () => {
       productId: product.id,
       name: product.name + (isCustom ? ' (Bespoke Custom)' : ''),
       price: finalPrice,
+      basePrice: product.price,
       image: product.images?.[0]?.url || product.images?.[0] || 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?q=80',
       qty,
       size: isCustom && useCustomMeasurements ? 'Custom' : selectedSize,
@@ -244,7 +288,7 @@ const ProductDetails = () => {
   }
 
   // Surcharge calculation
-  const currentPrice = showCustomizer ? product.price + 50 : product.price;
+  const currentPrice = showCustomizer ? product.price + getCustomSurcharge() : product.price;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in relative space-y-8">
@@ -376,26 +420,56 @@ const ProductDetails = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Fabric */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-505">Fabric Option</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-500">Fabric Option</label>
                     <select
                       value={fabric}
                       onChange={(e) => setFabric(e.target.value)}
                       className="w-full px-2.5 py-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
                     >
-                      <option value="Georgette Silk">Georgette Silk</option>
-                      <option value="Heavy Duty Linen">Heavy Duty Linen</option>
-                      <option value="Premium Cotton">Premium Cotton</option>
-                      <option value="Silk Velvet">Silk Velvet</option>
-                      <option value="Merino Wool">Merino Wool</option>
+                      <option value="Georgette Silk">Georgette Silk (+$20)</option>
+                      <option value="Heavy Duty Linen">Heavy Duty Linen (+$15)</option>
+                      <option value="Premium Cotton">Premium Cotton (+$10)</option>
+                      <option value="Silk Velvet">Silk Velvet (+$40)</option>
+                      <option value="Merino Wool">Merino Wool (+$30)</option>
+                    </select>
+                  </div>
+
+                  {/* Pattern */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-gray-500">Pattern Option</label>
+                    <select
+                      value={pattern}
+                      onChange={(e) => setPattern(e.target.value)}
+                      className="w-full px-2.5 py-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
+                    >
+                      <option value="Solid">Solid (+$0)</option>
+                      <option value="Floral">Floral (+$15)</option>
+                      <option value="Stripes">Stripes (+$10)</option>
+                      <option value="Polka Dots">Polka Dots (+$10)</option>
+                      <option value="Plaid">Plaid (+$15)</option>
                     </select>
                   </div>
 
                   {/* Custom color input */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-505">Custom Color Spec</label>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[10px] font-bold uppercase text-gray-500">Color Selection</label>
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {['#0f172a', '#b45309', '#be123c', '#000000', '#ffffff', '#f5f5dc', '#10b981', '#ef4444'].map((col, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setSelectedColor(col);
+                            setCustomColor('');
+                          }}
+                          style={{ backgroundColor: col }}
+                          className={`w-6 h-6 rounded-full border-2 cursor-pointer transition-transform hover:scale-110 ${selectedColor === col && !customColor ? 'border-gold scale-105' : 'border-transparent'}`}
+                        />
+                      ))}
+                    </div>
                     <input
                       type="text"
-                      placeholder="e.g. Lavender Blush, Emerald Green"
+                      placeholder="Or specify custom color name..."
                       value={customColor}
                       onChange={(e) => setCustomColor(e.target.value)}
                       className="w-full px-2.5 py-1.5 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold"
@@ -404,7 +478,7 @@ const ProductDetails = () => {
 
                   {/* Neck design */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-505">Neckline Design</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-500">Neckline Design</label>
                     <select
                       value={neckDesign}
                       onChange={(e) => setNeckDesign(e.target.value)}
@@ -415,28 +489,30 @@ const ProductDetails = () => {
                       <option value="V-Neck">V-Neck</option>
                       <option value="Crew Neck">Crew Neck</option>
                       <option value="Halter Neck">Halter Neck</option>
+                      <option value="Off-shoulder">Off-shoulder</option>
                     </select>
                   </div>
 
                   {/* Sleeve design */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-505">Sleeve Option</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-500">Sleeve Option</label>
                     <select
                       value={sleeveDesign}
                       onChange={(e) => setSleeveDesign(e.target.value)}
                       className="w-full px-2.5 py-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
                     >
-                      <option value="Short Sleeves">Short Sleeves</option>
-                      <option value="Sleeveless">Sleeveless</option>
-                      <option value="Puff Sleeves">Puff Sleeves</option>
-                      <option value="Three-Quarter">Three-Quarter</option>
-                      <option value="Long Sleeves">Long Sleeves</option>
+                      <option value="Short Sleeves">Short Sleeves (+$0)</option>
+                      <option value="Sleeveless">Sleeveless (+$0)</option>
+                      <option value="Puff Sleeves">Puff Sleeves (+$10)</option>
+                      <option value="Three-Quarter">Three-Quarter (+$10)</option>
+                      <option value="Long Sleeves">Long Sleeves (+$15)</option>
+                      <option value="Bell Sleeves">Bell Sleeves (+$15)</option>
                     </select>
                   </div>
 
                   {/* Length */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-505">Dress Length</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-500">Dress Length</label>
                     <select
                       value={dressLength}
                       onChange={(e) => setDressLength(e.target.value)}
@@ -452,7 +528,7 @@ const ProductDetails = () => {
 
                   {/* Fit */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-505">Posture & Fit</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-500">Posture & Fit</label>
                     <select
                       value={fit}
                       onChange={(e) => setFit(e.target.value)}
@@ -463,40 +539,66 @@ const ProductDetails = () => {
                       <option value="Loose Fit">Loose Fit</option>
                     </select>
                   </div>
+
+                  {/* Buttons */}
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[10px] font-bold uppercase text-gray-500">Buttons Selection</label>
+                    <select
+                      value={buttons}
+                      onChange={(e) => setButtons(e.target.value)}
+                      className="w-full px-2.5 py-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
+                    >
+                      <option value="None">None (+$0)</option>
+                      <option value="Pearl Buttons">Pearl Buttons (+$15)</option>
+                      <option value="Metallic Buttons">Metallic Buttons (+$10)</option>
+                      <option value="Wooden Buttons">Wooden Buttons (+$5)</option>
+                      <option value="Fabric Buttons">Fabric Buttons (+$10)</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Sizing selection */}
-                <div className="space-y-3 pt-2 border-t border-gold/15">
-                  <div className="flex items-center gap-4">
-                    <label className="text-xs font-bold uppercase text-gray-505">Sizing Sizing Type</label>
+                <div className="space-y-3 pt-4 border-t border-gold/15">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <label className="text-xs font-bold uppercase text-gray-500">Sizing Type</label>
                     <div className="flex gap-2">
                       <button
+                        key="standard"
                         type="button"
                         onClick={() => setUseCustomMeasurements(false)}
-                        className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${!useCustomMeasurements ? 'bg-gold text-white' : 'border border-gold/40 text-gold'}`}
+                        className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${!useCustomMeasurements ? 'bg-gold text-white shadow' : 'border border-gold/40 text-gold hover:bg-gold/10'}`}
                       >
                         Standard Size
                       </button>
                       <button
+                        key="custom"
                         type="button"
                         onClick={() => setUseCustomMeasurements(true)}
-                        className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${useCustomMeasurements ? 'bg-gold text-white' : 'border border-gold/40 text-gold'}`}
+                        className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${useCustomMeasurements ? 'bg-gold text-white shadow' : 'border border-gold/40 text-gold hover:bg-gold/10'}`}
                       >
-                        Custom Measurements
+                        Custom Measurements (+$30)
                       </button>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowSizeGuideModal(true)}
+                      className="text-[10px] text-gold underline cursor-pointer hover:text-black font-bold uppercase tracking-wider ml-auto"
+                    >
+                      Size Guide
+                    </button>
                   </div>
 
                   {!useCustomMeasurements ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pt-1.5">
                       <span className="text-[10px] font-bold text-gray-500 uppercase">Standard Size:</span>
-                      <div className="flex gap-2">
-                        {['S', 'M', 'L', 'XL'].map(sz => (
+                      <div className="flex flex-wrap gap-2">
+                        {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(sz => (
                           <button
                             key={sz}
                             type="button"
                             onClick={() => setSelectedSize(sz)}
-                            className={`w-8 h-8 rounded text-xs font-semibold border ${selectedSize === sz ? 'bg-gold border-gold text-white' : 'border-[var(--border-color)] text-gray-600'}`}
+                            className={`w-8 h-8 text-xs font-bold border transition-colors ${selectedSize === sz ? 'bg-gold border-gold text-white' : 'border-[var(--border-color)] text-gray-600 hover:border-gold'}`}
                           >
                             {sz}
                           </button>
@@ -504,30 +606,46 @@ const ProductDetails = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gold/5 p-4 rounded border border-gold/15">
                       <div className="space-y-0.5">
                         <label className="text-[9px] font-semibold text-gray-500 uppercase">Bust (in)</label>
-                        <input type="number" required placeholder="e.g. 34" value={bust} onChange={e => setBust(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
+                        <input type="number" placeholder="e.g. 34" value={bust} onChange={e => setBust(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
                       </div>
                       <div className="space-y-0.5">
                         <label className="text-[9px] font-semibold text-gray-500 uppercase">Waist (in)</label>
-                        <input type="number" required placeholder="e.g. 28" value={waist} onChange={e => setWaist(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
+                        <input type="number" placeholder="e.g. 28" value={waist} onChange={e => setWaist(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
                       </div>
                       <div className="space-y-0.5">
                         <label className="text-[9px] font-semibold text-gray-500 uppercase">Hip (in)</label>
-                        <input type="number" required placeholder="e.g. 36" value={hip} onChange={e => setHip(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
+                        <input type="number" placeholder="e.g. 36" value={hip} onChange={e => setHip(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
                       </div>
                       <div className="space-y-0.5">
                         <label className="text-[9px] font-semibold text-gray-500 uppercase">Shoulder (in)</label>
-                        <input type="number" required placeholder="e.g. 15" value={shoulder} onChange={e => setShoulder(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
+                        <input type="number" placeholder="e.g. 15" value={shoulder} onChange={e => setShoulder(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
                       </div>
                       <div className="space-y-0.5">
-                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Sleeve (in)</label>
-                        <input type="number" required placeholder="e.g. 22" value={sleeve} onChange={e => setSleeve(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
+                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Neck Size (in)</label>
+                        <input type="number" placeholder="e.g. 13" value={neckSize} onChange={e => setNeckSize(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
                       </div>
                       <div className="space-y-0.5">
-                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Length (in)</label>
-                        <input type="number" required placeholder="e.g. 40" value={length} onChange={e => setLength(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
+                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Sleeve Length (in)</label>
+                        <input type="number" placeholder="e.g. 22" value={sleeveLength} onChange={e => setSleeveLength(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Arm Hole (in)</label>
+                        <input type="number" placeholder="e.g. 16" value={armHole} onChange={e => setArmHole(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Dress Length (in)</label>
+                        <input type="number" placeholder="e.g. 40" value={dressLengthCustom} onChange={e => setDressLengthCustom(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Height (in)</label>
+                        <input type="number" placeholder="e.g. 64" value={height} onChange={e => setHeight(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
+                      </div>
+                      <div className="space-y-0.5 sm:col-span-3">
+                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Weight (lbs)</label>
+                        <input type="number" placeholder="e.g. 130" value={weight} onChange={e => setWeight(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
                       </div>
                     </div>
                   )}
@@ -535,38 +653,45 @@ const ProductDetails = () => {
 
                 {/* References */}
                 <div className="space-y-2 pt-2 border-t border-gold/15">
-                  <h5 className="text-[10px] font-bold uppercase text-gray-505">Design Inspiration References</h5>
-                  <div className="grid grid-cols-1 gap-2">
+                  <h5 className="text-[10px] font-bold uppercase text-gray-500">Design References & Uploads</h5>
+                  <div className="grid grid-cols-1 gap-2.5">
                     <input
                       type="url"
                       placeholder="Pinterest Reference Link URL"
                       value={pinterestUrl}
                       onChange={e => setPinterestUrl(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs"
+                      className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold"
+                    />
+                    <input
+                      type="url"
+                      placeholder="Reference Image URL"
+                      value={referenceImageUrl}
+                      onChange={e => setReferenceImageUrl(e.target.value)}
+                      className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold"
                     />
                     <input
                       type="url"
                       placeholder="Sketch Image Link URL"
                       value={sketchUrl}
                       onChange={e => setSketchUrl(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs"
+                      className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold"
                     />
                     <input
                       type="url"
-                      placeholder="Inspiration Reference Link URL"
+                      placeholder="Design Inspiration Reference URL"
                       value={inspirationUrl}
                       onChange={e => setInspirationUrl(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs"
+                      className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold"
                     />
                   </div>
                 </div>
 
                 {/* Instructions */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-gray-505">Special Instructions</label>
+                <div className="space-y-1 pt-1.5">
+                  <label className="text-[10px] font-bold uppercase text-gray-500">Special Instructions</label>
                   <textarea
-                    rows="2"
-                    placeholder="Specify pocket requirements, lining colors, lace additions, or matching patterns..."
+                    rows="2.5"
+                    placeholder="Specify styling details, pocket details, or fabric preferences..."
                     value={specialInstructions}
                     onChange={e => setSpecialInstructions(e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold resize-none"
@@ -574,15 +699,29 @@ const ProductDetails = () => {
                 </div>
 
                 {/* Estimates */}
-                <div className="pt-2 border-t border-gold/15 flex items-center justify-between text-xs">
-                  <span className="font-semibold text-gray-500">Custom Surcharge: <span className="text-gold font-sans">+$50</span></span>
-                  <span className="font-semibold text-gray-500">Lead Time: <span className="text-gray-900 dark:text-gray-150 font-sans">5 weeks</span></span>
+                <div className="pt-3 border-t border-gold/15 flex flex-col gap-1.5 text-xs text-gray-600 font-semibold bg-gold/5 p-3 rounded">
+                  <div className="flex justify-between">
+                    <span>Base Garment Price:</span>
+                    <span className="font-sans text-gray-800 dark:text-white">${product.price}</span>
+                  </div>
+                  <div className="flex justify-between text-gold">
+                    <span>Customization Surcharge:</span>
+                    <span className="font-sans">+${getCustomSurcharge()}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-gold/20 pt-1.5 font-bold text-[var(--text-color)] text-sm">
+                    <span>Live Estimated Price:</span>
+                    <span className="font-sans text-gold">${product.price + getCustomSurcharge()}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-gray-400 font-mono mt-1 border-t border-dashed border-[var(--border-color)] pt-1.5">
+                    <span>Lead Time:</span>
+                    <span>5 Weeks</span>
+                  </div>
                 </div>
 
-                {/* Tailoring notice */}
-                <div className="flex gap-1.5 bg-gold/10 text-gold p-2.5 rounded text-[10px] items-start border border-gold/25 leading-relaxed font-semibold">
+                {/* Handcrafted Warning Message */}
+                <div className="flex gap-1.5 bg-gold/10 text-gold p-3 rounded text-[10px] items-start border border-gold/25 leading-relaxed font-semibold">
                   <FiInfo size={14} className="shrink-0 mt-0.5" />
-                  <span>Custom tailoring takes approximately 5 weeks. No return or exchange options are supported for custom garments.</span>
+                  <span>This customized garment is handcrafted and requires approximately five weeks for production. Custom pieces cannot be returned or refunded.</span>
                 </div>
 
               </motion.div>
@@ -666,6 +805,68 @@ const ProductDetails = () => {
                 </button>
               </div>
 
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Size Guide Modal */}
+      <AnimatePresence>
+        {showSizeGuideModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-gray-900 border border-[var(--border-color)] rounded-2xl w-full max-w-2xl p-6 sm:p-8 shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setShowSizeGuideModal(false)}
+                className="absolute top-4 right-4 text-gray-550 hover:text-gold p-1.5 cursor-pointer z-10"
+              >
+                <FiX size={20} />
+              </button>
+              
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold uppercase tracking-wider text-gray-900 dark:text-white text-center">GFLOCK Size Guide</h3>
+                <div className="h-0.5 w-16 bg-gold mx-auto mb-4"></div>
+                
+                <p className="text-xs text-gray-400 text-center leading-relaxed">
+                  All measurements listed below are in inches. Select the standard size that fits your silhouette, or submit custom tailoring specs.
+                </p>
+                
+                <div className="overflow-x-auto border border-[var(--border-color)] rounded-lg">
+                  <table className="w-full text-xs text-left text-gray-700 dark:text-gray-300">
+                    <thead>
+                      <tr className="bg-gold/10 text-gold font-bold uppercase border-b border-[var(--border-color)]">
+                        <th className="p-3">Size</th>
+                        <th className="p-3">Bust (in)</th>
+                        <th className="p-3">Waist (in)</th>
+                        <th className="p-3">Hip (in)</th>
+                        <th className="p-3">UK Size</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border-color)]">
+                      {[
+                        { size: 'XS', bust: '32', waist: '25', hip: '35', uk: '6' },
+                        { size: 'S', bust: '34', waist: '27', hip: '37', uk: '8' },
+                        { size: 'M', bust: '36', waist: '29', hip: '39', uk: '10' },
+                        { size: 'L', bust: '38', waist: '31', hip: '41', uk: '12' },
+                        { size: 'XL', bust: '40', waist: '33', hip: '43', uk: '14' },
+                        { size: 'XXL', bust: '42', waist: '35', hip: '45', uk: '16' },
+                      ].map((row, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <td className="p-3 font-semibold">{row.size}</td>
+                          <td className="p-3 font-mono">{row.bust}</td>
+                          <td className="p-3 font-mono">{row.waist}</td>
+                          <td className="p-3 font-mono">{row.hip}</td>
+                          <td className="p-3 font-mono">{row.uk}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

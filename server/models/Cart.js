@@ -8,6 +8,8 @@ const cartItemSchema = new mongoose.Schema({
     size: String,
     color: String,
     qty: { type: Number, default: 1 },
+    isCustom: { type: Boolean, default: false },
+    customization: { type: mongoose.Schema.Types.Mixed },
 });
 
 const cartSchema = new mongoose.Schema({

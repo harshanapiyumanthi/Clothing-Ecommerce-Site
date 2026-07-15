@@ -8,6 +8,8 @@ const orderItemSchema = new mongoose.Schema({
     size: { type: String },
     color: { type: String },
     qty: { type: Number, required: true, default: 1 },
+    isCustom: { type: Boolean, default: false },
+    customization: { type: mongoose.Schema.Types.Mixed },
 });
 
 const orderSchema = new mongoose.Schema({

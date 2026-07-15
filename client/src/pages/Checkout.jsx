@@ -128,7 +128,17 @@ const Checkout = () => {
                     <p className="text-sm font-medium line-clamp-1">{item.name}</p>
                     <p className="text-xs opacity-60 text-gold font-semibold">${item.price}</p>
                     {item.isCustom && item.customization && (
-                      <p className="text-[10px] text-gold font-semibold mt-0.5">Bespoke Custom Spec</p>
+                      <div className="text-[9px] text-gold/90 space-y-0.5 bg-gold/5 p-1.5 rounded border border-gold/15 mt-1">
+                        <p className="font-bold uppercase tracking-wider text-[8px] text-gold">Bespoke Spec:</p>
+                        <p>Fabric: {item.customization.fabric}</p>
+                        <p>Sleeve: {item.customization.sleeveDesign}</p>
+                        {item.customization.sizeType === 'Custom' && item.customization.measurements ? (
+                          <p>B/W/H: {item.customization.measurements.bust}" / {item.customization.measurements.waist}" / {item.customization.measurements.hip}"</p>
+                        ) : (
+                          <p>Size: Standard {item.customization.standardSize}</p>
+                        )}
+                        <p className="text-[7.5px] italic text-gray-400">Lead time: 5 Weeks</p>
+                      </div>
                     )}
                   </div>
                 </div>
