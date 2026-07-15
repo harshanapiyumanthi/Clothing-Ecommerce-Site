@@ -92,10 +92,31 @@ const getUserProfile = async (req, res) => {
                 phone: user.phone,
                 avatar: user.avatar,
                 addresses: user.addresses,
+                membershipTier: user.membershipTier,
                 lastLogin: user.lastLogin,
                 createdAt: user.createdAt,
             },
         });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+// @desc    Upgrade to Premium Membership
+// @route   PUT /api/auth/upgrade
+// @access  Private
+const upgradeMembership = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        
+        // Mock payment verification logic would go here
+        user.membershipTier = 'Premium';
+        await user.save();
+        
+        res.json({ success: true, message: 'Upgraded to Premium Membership successfully', membershipTier: user.membershipTier });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
@@ -250,6 +271,7 @@ module.exports = {
     loginUser,
     getUserProfile,
     updateUserProfile,
+    upgradeMembership,
     changePassword,
     forgotPassword,
     getAllUsers,

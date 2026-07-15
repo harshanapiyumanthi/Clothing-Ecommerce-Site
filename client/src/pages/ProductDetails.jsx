@@ -58,6 +58,7 @@ const ProductDetails = () => {
   const [accessories, setAccessories] = useState([]);
   const [addedAccessories, setAddedAccessories] = useState([]);
   const [skippedAccessories, setSkippedAccessories] = useState([]);
+  const [selectedAccessories, setSelectedAccessories] = useState([]);
 
   // Reviews & ratings state
   const [reviewsList, setReviewsList] = useState([]);
@@ -249,6 +250,13 @@ const ProductDetails = () => {
   };
 
   const handleAddMainToCart = () => {
+    // Auth check before adding to cart
+    if (!userInfo) {
+      toast.warning('Please log in or register to add items to your cart.');
+      navigate('/login');
+      return;
+    }
+
     // If user selected custom measurements, validate them
     if (showCustomizer && useCustomMeasurements) {
       if (!bust || !waist || !hip || !shoulder || !neckSize || !sleeveLength || !armHole || !dressLengthCustom || !height || !weight) {
@@ -312,6 +320,42 @@ const ProductDetails = () => {
     // Trigger Recommendation Popup
     loadRecommendations();
     setShowLookModal(true);
+  };
+
+  const handleAccessoryToggle = (accId) => {
+    if (selectedAccessories.includes(accId)) {
+      setSelectedAccessories(selectedAccessories.filter(id => id !== accId));
+    } else {
+      setSelectedAccessories([...selectedAccessories, accId]);
+    }
+  };
+
+  const handleSkipLook = () => {
+    setShowLookModal(false);
+    setSelectedAccessories([]);
+    toast.info('Bespoke matching accessories skipped.');
+  };
+
+  const handleAddLook = () => {
+    selectedAccessories.forEach(accId => {
+      const acc = accessories.find(a => (a.id || a._id) === accId);
+      if (acc) {
+        dispatch(addToCart({
+          id: acc.id || acc._id,
+          productId: acc.id || acc._id,
+          name: acc.name,
+          price: acc.discountPrice || acc.price,
+          image: acc.images?.[0]?.url || acc.images?.[0] || 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80',
+          qty: 1,
+          size: acc.sizes?.[0] || 'One Size',
+          color: acc.colors?.[0] || 'Neutral',
+          isCustom: false
+        }));
+      }
+    });
+    toast.success('Matching accessories added to cart!');
+    setShowLookModal(false);
+    setSelectedAccessories([]);
   };
 
   const handleAddAccessory = (acc) => {

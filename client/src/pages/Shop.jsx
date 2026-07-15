@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
 import { FiHeart, FiEye, FiX, FiMinus, FiPlus, FiShoppingBag, FiSearch } from 'react-icons/fi';
@@ -11,6 +11,8 @@ import Breadcrumb from '../components/Breadcrumb';
 const Shop = () => {
   const location = useLocation();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null');
   const { wishlistItems } = useSelector((state) => state.wishlist);
 
   const [products, setProducts] = useState([]);
@@ -141,6 +143,11 @@ const Shop = () => {
   };
 
   const handleQvAddToCart = () => {
+    if (!userInfo) {
+      toast.warning('Please log in or register to add items to your cart.');
+      navigate('/login');
+      return;
+    }
     dispatch(addToCart({
       id: quickViewProduct.id,
       productId: quickViewProduct.id,
@@ -189,7 +196,7 @@ const Shop = () => {
             <div>
               <h3 className="text-[10px] font-bold uppercase tracking-wider text-gold mb-3">Category</h3>
               <div className="flex flex-wrap lg:flex-col gap-2 lg:gap-3">
-                {['All', 'Women', 'Teen', 'Office', 'Casual', 'Sarees', 'Accessories'].map(cat => (
+                {['All', 'Women', 'Teen', 'Office', 'Casual', 'Accessories'].map(cat => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}

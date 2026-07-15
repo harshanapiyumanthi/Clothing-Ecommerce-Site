@@ -98,7 +98,8 @@ const getMyOrders = asyncHandler(async (req, res) => {
     const orders = await Order.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(limit)
+        .lean();
 
     res.json({ success: true, orders, page, pages: Math.ceil(total / limit), total });
 });
@@ -107,7 +108,7 @@ const getMyOrders = asyncHandler(async (req, res) => {
 // @route   GET /api/orders/:id
 // @access  Private
 const getOrderById = asyncHandler(async (req, res) => {
-    const order = await Order.findById(req.params.id).populate('user', 'name email phone');
+    const order = await Order.findById(req.params.id).populate('user', 'name email phone').lean();
     if (!order) {
         res.status(404);
         throw new Error('Order not found');
@@ -223,7 +224,8 @@ const getAllOrders = asyncHandler(async (req, res) => {
         .populate('user', 'name email')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(limit)
+        .lean();
 
     res.json({ success: true, orders, page, pages: Math.ceil(total / limit), total });
 });

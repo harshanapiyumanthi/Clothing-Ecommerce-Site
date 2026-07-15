@@ -6,6 +6,7 @@ const {
     registerUser,
     loginUser,
     getUserProfile,
+    upgradeMembership,
     forgotPassword
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
@@ -28,5 +29,7 @@ router.post('/forgot-password', [
     body('email').isEmail().withMessage('Please provide a valid email'),
     validate
 ], forgotPassword);
+
+router.put('/upgrade', protect, upgradeMembership);
 
 module.exports = router;

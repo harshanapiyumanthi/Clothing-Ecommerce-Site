@@ -32,5 +32,11 @@ const productSchema = new mongoose.Schema({
 // Full-text search index
 productSchema.index({ name: 'text', description: 'text', tags: 'text' });
 
+// Additional indexes for performance optimization
+productSchema.index({ category: 1, rating: -1 });
+productSchema.index({ stock: 1, sold: -1 });
+productSchema.index({ isFeatured: 1 });
+productSchema.index({ isBestSeller: 1 });
+
 const Product = mongoose.model('Product', productSchema);
 module.exports = Product;

@@ -3,12 +3,30 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const path = require('path');
-
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 dotenv.config({ override: true });
 
 const app = express();
 
 // ─── Middlewares ─────────────────────────────────────────────────────────────
+app.use(helmet());
+app.use(mongoSanitize());
+app.use(xss());
+app.use(compression());
+
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 200, // Limit each IP to 200 requests per `window` (here, per 15 minutes)
+    message: 'Too many requests from this IP, please try again after 15 minutes',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use('/api', apiLimiter);
+
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
     credentials: true,
@@ -37,6 +55,7 @@ const recommendationRoutes = require('./routes/recommendationRoutes');
 const couponRoutes      = require('./routes/couponRoutes');
 const paymentRoutes     = require('./routes/paymentRoutes');
 const reviewRoutes      = require('./routes/reviewRoutes');
+const customizationRoutes = require('./routes/customizationRoutes');
 
 app.get('/', (req, res) => res.json({ message: '🌟 Elegance Fashion API is running' }));
 
@@ -53,6 +72,7 @@ app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/coupons',         couponRoutes);
 app.use('/api/payments',        paymentRoutes);
 app.use('/api/reviews',         reviewRoutes);
+app.use('/api/customizations',  customizationRoutes);
 
 // ─── Error Handlers ──────────────────────────────────────────────────────────
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');

@@ -45,6 +45,11 @@ const userSchema = mongoose.Schema(
             url: { type: String, default: '' },
         },
         addresses: [addressSchema],
+        membershipTier: {
+            type: String,
+            enum: ['Standard', 'Premium'],
+            default: 'Standard',
+        },
         isActive: { type: Boolean, default: true },
         lastLogin: { type: Date },
         passwordChangedAt: { type: Date },

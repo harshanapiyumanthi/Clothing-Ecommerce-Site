@@ -47,5 +47,10 @@ const orderSchema = new mongoose.Schema({
     discount: { type: Number, default: 0 },
 }, { timestamps: true });
 
+// Add indexes for optimizing order queries
+orderSchema.index({ user: 1, createdAt: -1 });
+orderSchema.index({ orderStatus: 1 });
+orderSchema.index({ isPaid: 1, isDelivered: 1 });
+
 const Order = mongoose.model('Order', orderSchema);
 module.exports = Order;

@@ -24,6 +24,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const DreamDressStudio = lazy(() => import('./pages/DreamDressStudio'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Info Pages
@@ -69,6 +70,7 @@ function App() {
               <Route path="/profile" element={<UserProfile />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/order-success" element={<OrderSuccess />} />
+              <Route path="/studio" element={<DreamDressStudio />} />
             </Route>
           </Route>
 

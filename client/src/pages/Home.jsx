@@ -80,7 +80,6 @@ const Home = () => {
     { name: 'Office Wear', image: 'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?q=80&w=500&auto=format&fit=crop', link: '/shop?category=Office' },
     { name: 'Casual Wear', image: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?q=80&w=500&auto=format&fit=crop', link: '/shop?category=Casual' },
     { name: 'Party Wear', image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?q=80&w=500&auto=format&fit=crop', link: '/shop?category=Party' },
-    { name: 'Sarees', image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?q=80&w=500&auto=format&fit=crop', link: '/shop?category=Sarees' },
     { name: 'Accessories', image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=500&auto=format&fit=crop', link: '/shop?category=Accessories' },
   ];
 

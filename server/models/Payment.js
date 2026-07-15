@@ -22,7 +22,7 @@ const paymentSchema = new mongoose.Schema(
         },
         paymentMethod: {
             type: String,
-            enum: ['Stripe', 'COD'],
+            enum: ['Stripe', 'Mintpay', 'FLEX', 'COD'],
             required: true,
         },
         paymentMethodDetails: {
