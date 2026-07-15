@@ -11,7 +11,10 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -21,8 +24,16 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      toast.warning('Please enter name, email and password.');
+    if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+      toast.warning('Please enter all required fields.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match.');
+      return;
+    }
+    if (!acceptTerms) {
+      toast.warning('You must accept the terms and conditions.');
       return;
     }
 
@@ -165,6 +176,45 @@ const Register = () => {
                 {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
               </button>
             </div>
+          </div>
+
+          {/* Confirm Password field */}
+          <div className="space-y-1.5">
+            <label className="font-semibold text-gray-500 uppercase tracking-wider text-[10px]">Confirm Password</label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                <FiLock size={16} />
+              </span>
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                required
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                className="w-full pl-9 pr-10 py-3 border border-gray-200 dark:border-gray-800 bg-transparent text-xs rounded-lg outline-none focus:border-gold dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gold cursor-pointer"
+              >
+                {showConfirmPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Terms checkbox */}
+          <div className="flex items-start gap-2 py-1">
+            <input 
+              type="checkbox" 
+              id="terms"
+              checked={acceptTerms}
+              onChange={(e) => setAcceptTerms(e.target.checked)}
+              className="mt-1 accent-gold"
+            />
+            <label htmlFor="terms" className="text-[10px] text-gray-500 leading-snug cursor-pointer">
+              I agree to the <Link to="/terms-conditions" className="text-gold hover:underline">Terms & Conditions</Link> and <Link to="/privacy-policy" className="text-gold hover:underline">Privacy Policy</Link>.
+            </label>
           </div>
 
           <button

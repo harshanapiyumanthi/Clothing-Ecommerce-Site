@@ -10,6 +10,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -133,6 +134,25 @@ const Login = () => {
                 {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
               </button>
             </div>
+          </div>
+
+          {/* Remember me & Forgot Password */}
+          <div className="flex items-center justify-between py-1">
+            <div className="flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                id="remember"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="accent-gold"
+              />
+              <label htmlFor="remember" className="text-[10px] text-gray-500 cursor-pointer">
+                Remember Me
+              </label>
+            </div>
+            <Link to="/forgot-password" className="text-[10px] text-gold hover:underline font-bold tracking-wider">
+              Forgot Password?
+            </Link>
           </div>
 
           <button

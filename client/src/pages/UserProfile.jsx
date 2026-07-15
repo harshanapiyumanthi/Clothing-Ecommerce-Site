@@ -1,25 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiUser, FiPackage, FiMapPin, FiPhone, FiMail, FiCalendar, FiStar, FiRotateCcw, FiBell } from 'react-icons/fi';
+import { FiUser, FiPackage, FiMapPin, FiPhone, FiMail, FiCalendar, FiStar, FiRotateCcw, FiBell, FiCamera, FiLock, FiPlus, FiTrash2, FiHelpCircle, FiSend } from 'react-icons/fi';
 import Breadcrumb from '../components/Breadcrumb';
 
 const UserProfile = () => {
   const { userInfo } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const fileInputRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState('profile');
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
-    phone: '',
-    address: '',
-    city: '',
-    postalCode: ''
+    phone: ''
   });
+  const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
+  const [addresses, setAddresses] = useState([]);
   const [userOrders, setUserOrders] = useState([]);
+  const [avatar, setAvatar] = useState(null);
 
   useEffect(() => {
     if (!userInfo) {
@@ -30,11 +31,13 @@ const UserProfile = () => {
     setProfileData({
       name: userInfo.name || '',
       email: userInfo.email || '',
-      phone: userInfo.phone || '077 123 4567',
-      address: userInfo.address || '123 Atelier Lane',
-      city: userInfo.city || 'Colombo',
-      postalCode: userInfo.postalCode || '00700'
+      phone: userInfo.phone || '077 123 4567'
     });
+
+    setAddresses([
+      { id: 1, type: 'Home', address: '123 Atelier Lane', city: 'Colombo', postalCode: '00700', isDefault: true },
+      { id: 2, type: 'Office', address: '45 Business Park', city: 'Colombo', postalCode: '00300', isDefault: false }
+    ]);
 
     const allOrders = JSON.parse(localStorage.getItem('admin_orders') || '[]');
     const filtered = allOrders.filter(o => o.user?.email?.toLowerCase() === userInfo.email?.toLowerCase());
@@ -74,19 +77,15 @@ const UserProfile = () => {
 
   const handleProfileUpdate = (e) => {
     e.preventDefault();
-    if (!profileData.name.trim() || !profileData.email.trim()) {
-      toast.warning('Name and Email are required.');
+    if (!profileData.name.trim()) {
+      toast.warning('Name is required.');
       return;
     }
 
     const updatedUser = {
       ...userInfo,
       name: profileData.name,
-      email: profileData.email,
-      phone: profileData.phone,
-      address: profileData.address,
-      city: profileData.city,
-      postalCode: profileData.postalCode
+      phone: profileData.phone
     };
 
     localStorage.setItem('userInfo', JSON.stringify(updatedUser));
@@ -96,8 +95,33 @@ const UserProfile = () => {
     }, 800);
   };
 
+  const handlePasswordUpdate = (e) => {
+    e.preventDefault();
+    if (!passwords.current || !passwords.new || !passwords.confirm) {
+      toast.warning('All password fields are required.');
+      return;
+    }
+    if (passwords.new !== passwords.confirm) {
+      toast.error('New passwords do not match.');
+      return;
+    }
+    toast.success('Password updated successfully! (Simulated)');
+    setPasswords({ current: '', new: '', confirm: '' });
+  };
+
+  const handleAvatarUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatar(reader.result);
+        toast.success('Profile picture updated!');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const renderOrderTimeline = (order) => {
-    // Determine the list of steps to show
     const isCustomOrder = order.orderItems?.some(item => item.isCustom);
     const steps = isCustomOrder ? [
       'Received', 'Design Review', 'Cutting', 'Tailoring', 'Quality Check', 'Ready', 'Delivered'
@@ -105,8 +129,6 @@ const UserProfile = () => {
       'Received', 'Processing', 'Shipped', 'Delivered'
     ];
 
-    // Find the index of the current status
-    // Map order.orderStatus (e.g. 'Order Received' maps to 'Received')
     let currentStatus = order.orderStatus || 'Received';
     if (currentStatus === 'Order Received') currentStatus = 'Received';
 
@@ -117,14 +139,11 @@ const UserProfile = () => {
     return (
       <div className="w-full py-4 border-b border-[var(--border-color)] overflow-x-auto mb-4">
         <div className="flex items-center justify-between min-w-[500px] relative px-4">
-          {/* Connector Line */}
           <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-250 dark:bg-gray-800 -translate-y-1/2 z-0" />
           <div 
             className="absolute top-3 left-0 h-0.5 bg-gold -translate-y-1/2 z-0 transition-all duration-500" 
             style={{ width: `${(Math.max(0, currentIndex) / (steps.length - 1)) * 100}%` }}
           />
-
-          {/* Steps */}
           {steps.map((step, idx) => {
             const isCompleted = idx <= currentIndex;
             const isActive = idx === currentIndex;
@@ -156,8 +175,21 @@ const UserProfile = () => {
 
   const breadcrumbItems = [{ label: 'My Profile', link: '/profile' }];
 
+  const NavButton = ({ id, icon: Icon, label }) => (
+    <button
+      onClick={() => setActiveTab(id)}
+      className={`flex-1 lg:w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded transition-colors cursor-pointer ${
+        activeTab === id
+          ? 'bg-gold text-white shadow-sm shadow-gold/25'
+          : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-[var(--text-color)]'
+      }`}
+    >
+      <Icon size={14} /> <span className="hidden lg:inline sm:inline">{label}</span>
+    </button>
+  );
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in space-y-8 min-h-screen">
       <Breadcrumb items={breadcrumbItems} />
 
       <div className="flex flex-col lg:flex-row gap-10">
@@ -165,8 +197,17 @@ const UserProfile = () => {
         <aside className="w-full lg:w-64 flex-shrink-0">
           <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6 rounded-2xl space-y-6">
             <div className="text-center space-y-2">
-              <div className="h-16 w-16 bg-gold/15 text-gold border border-gold/30 rounded-full flex items-center justify-center font-bold text-2xl mx-auto uppercase">
-                {userInfo?.name ? userInfo.name.charAt(0) : 'U'}
+              <div className="relative inline-block group">
+                <div className="h-20 w-20 bg-gold/15 text-gold border border-gold/30 rounded-full flex items-center justify-center font-bold text-3xl mx-auto uppercase overflow-hidden">
+                  {avatar ? <img src={avatar} alt="Profile" className="w-full h-full object-cover" /> : (userInfo?.name ? userInfo.name.charAt(0) : 'U')}
+                </div>
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 bg-gold text-white p-1.5 rounded-full shadow-md cursor-pointer hover:bg-black transition-colors"
+                >
+                  <FiCamera size={12} />
+                </button>
+                <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
               </div>
               <div>
                 <h3 className="font-bold text-sm tracking-wide">{userInfo?.name || 'Customer'}</h3>
@@ -176,57 +217,14 @@ const UserProfile = () => {
 
             <div className="h-[1px] bg-[var(--border-color)]"></div>
 
-            <nav className="flex lg:flex-col gap-2">
-              <button
-                onClick={() => setActiveTab('profile')}
-                className={`flex-1 lg:w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded transition-colors cursor-pointer ${
-                  activeTab === 'profile'
-                    ? 'bg-gold text-white shadow-sm shadow-gold/25'
-                    : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-[var(--text-color)]'
-                }`}
-              >
-                <FiUser size={14} /> Profile details
-              </button>
-              <button
-                onClick={() => setActiveTab('orders')}
-                className={`flex-1 lg:w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded transition-colors cursor-pointer ${
-                  activeTab === 'orders'
-                    ? 'bg-gold text-white shadow-sm shadow-gold/25'
-                    : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-[var(--text-color)]'
-                }`}
-              >
-                <FiPackage size={14} /> Order History
-              </button>
-              <button
-                onClick={() => setActiveTab('rewards')}
-                className={`flex-1 lg:w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded transition-colors cursor-pointer ${
-                  activeTab === 'rewards'
-                    ? 'bg-gold text-white shadow-sm shadow-gold/25'
-                    : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-[var(--text-color)]'
-                }`}
-              >
-                <FiStar size={14} /> Reward Points
-              </button>
-              <button
-                onClick={() => setActiveTab('returns')}
-                className={`flex-1 lg:w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded transition-colors cursor-pointer ${
-                  activeTab === 'returns'
-                    ? 'bg-gold text-white shadow-sm shadow-gold/25'
-                    : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-[var(--text-color)]'
-                }`}
-              >
-                <FiRotateCcw size={14} /> Returns
-              </button>
-              <button
-                onClick={() => setActiveTab('notifications')}
-                className={`flex-1 lg:w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded transition-colors cursor-pointer ${
-                  activeTab === 'notifications'
-                    ? 'bg-gold text-white shadow-sm shadow-gold/25'
-                    : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-[var(--text-color)]'
-                }`}
-              >
-                <FiBell size={14} /> Notifications
-              </button>
+            <nav className="flex lg:flex-col gap-2 overflow-x-auto custom-scrollbar pb-2 lg:pb-0">
+              <NavButton id="profile" icon={FiUser} label="Profile & Security" />
+              <NavButton id="addresses" icon={FiMapPin} label="Address Book" />
+              <NavButton id="orders" icon={FiPackage} label="Order History" />
+              <NavButton id="rewards" icon={FiStar} label="Reward Points" />
+              <NavButton id="returns" icon={FiRotateCcw} label="Returns" />
+              <NavButton id="notifications" icon={FiBell} label="Notifications" />
+              <NavButton id="support" icon={FiHelpCircle} label="Help & Support" />
             </nav>
           </div>
         </aside>
@@ -234,91 +232,153 @@ const UserProfile = () => {
         {/* Content Details */}
         <main className="flex-grow">
           {activeTab === 'profile' && (
-            <div className="bg-white dark:bg-gray-900 border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
-              <div className="border-b border-[var(--border-color)] pb-3">
-                <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">
-                  My Profile Details
-                </h2>
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-900 border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
+                <div className="border-b border-[var(--border-color)] pb-3 flex items-center gap-2">
+                  <FiUser className="text-gold" size={20} />
+                  <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">
+                    Personal Details
+                  </h2>
+                </div>
+
+                <form onSubmit={handleProfileUpdate} className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
+                  <div className="space-y-1.5">
+                    <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px]">Full Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={profileData.name}
+                      onChange={e => setProfileData({ ...profileData, name: e.target.value })}
+                      className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px]">Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      value={profileData.email}
+                      className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold opacity-60 cursor-not-allowed"
+                      disabled
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px]">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={profileData.phone}
+                      onChange={e => setProfileData({ ...profileData, phone: e.target.value })}
+                      className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2 pt-2">
+                    <button
+                      type="submit"
+                      className="px-8 py-3 bg-gold hover:bg-black text-white text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-sm cursor-pointer"
+                    >
+                      Update Profile
+                    </button>
+                  </div>
+                </form>
               </div>
 
-              <form onSubmit={handleProfileUpdate} className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
-                <div className="space-y-1.5">
-                  <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px] flex items-center gap-1.5"><FiUser className="text-gold" /> Full Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={profileData.name}
-                    onChange={e => setProfileData({ ...profileData, name: e.target.value })}
-                    className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold"
-                  />
+              <div className="bg-white dark:bg-gray-900 border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
+                <div className="border-b border-[var(--border-color)] pb-3 flex items-center gap-2">
+                  <FiLock className="text-gold" size={20} />
+                  <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">
+                    Security & Password
+                  </h2>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px] flex items-center gap-1.5"><FiMail className="text-gold" /> Email Address</label>
-                  <input
-                    type="email"
-                    required
-                    value={profileData.email}
-                    className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold opacity-60 cursor-not-allowed"
-                    disabled
-                  />
-                </div>
+                <form onSubmit={handlePasswordUpdate} className="grid grid-cols-1 gap-6 text-xs max-w-md">
+                  <div className="space-y-1.5">
+                    <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px]">Current Password</label>
+                    <input
+                      type="password"
+                      value={passwords.current}
+                      onChange={e => setPasswords({ ...passwords, current: e.target.value })}
+                      className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px] flex items-center gap-1.5"><FiPhone className="text-gold" /> Phone Number</label>
-                  <input
-                    type="tel"
-                    value={profileData.phone}
-                    onChange={e => setProfileData({ ...profileData, phone: e.target.value })}
-                    className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold"
-                  />
-                </div>
+                  <div className="space-y-1.5">
+                    <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px]">New Password</label>
+                    <input
+                      type="password"
+                      value={passwords.new}
+                      onChange={e => setPasswords({ ...passwords, new: e.target.value })}
+                      className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px] flex items-center gap-1.5"><FiMapPin className="text-gold" /> Delivery Address</label>
-                  <input
-                    type="text"
-                    value={profileData.address}
-                    onChange={e => setProfileData({ ...profileData, address: e.target.value })}
-                    className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold"
-                  />
-                </div>
+                  <div className="space-y-1.5">
+                    <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px]">Confirm New Password</label>
+                    <input
+                      type="password"
+                      value={passwords.confirm}
+                      onChange={e => setPasswords({ ...passwords, confirm: e.target.value })}
+                      className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px] flex items-center gap-1.5"><FiMapPin className="text-gold" /> City</label>
-                  <input
-                    type="text"
-                    value={profileData.city}
-                    onChange={e => setProfileData({ ...profileData, city: e.target.value })}
-                    className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold"
-                  />
-                </div>
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      className="px-8 py-3 bg-gray-200 dark:bg-gray-800 hover:bg-gold dark:hover:bg-gold hover:text-white text-[var(--text-color)] text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-sm cursor-pointer"
+                    >
+                      Change Password
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
-                <div className="space-y-1.5">
-                  <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px] flex items-center gap-1.5"><FiMapPin className="text-gold" /> Postal Code</label>
-                  <input
-                    type="text"
-                    value={profileData.postalCode}
-                    onChange={e => setProfileData({ ...profileData, postalCode: e.target.value })}
-                    className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold"
-                  />
+          {activeTab === 'addresses' && (
+            <div className="bg-white dark:bg-gray-900 border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
+              <div className="border-b border-[var(--border-color)] pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FiMapPin className="text-gold" size={20} />
+                  <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">
+                    Address Book
+                  </h2>
                 </div>
+                <button className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-gold hover:text-black transition-colors cursor-pointer">
+                  <FiPlus /> Add New
+                </button>
+              </div>
 
-                <div className="sm:col-span-2 pt-4">
-                  <button
-                    type="submit"
-                    className="w-full sm:w-auto px-8 py-3.5 bg-gold hover:bg-black text-white text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-sm shadow-gold/20 cursor-pointer"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              </form>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {addresses.map(addr => (
+                  <div key={addr.id} className="border border-[var(--border-color)] p-5 rounded-xl relative hover:border-gold transition-colors">
+                    {addr.isDefault && (
+                      <span className="absolute top-4 right-4 bg-gold/10 text-gold text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded">Default</span>
+                    )}
+                    <h3 className="font-bold text-sm mb-2">{addr.type}</h3>
+                    <div className="text-xs text-gray-500 space-y-0.5 mb-4">
+                      <p>{profileData.name}</p>
+                      <p>{addr.address}</p>
+                      <p>{addr.city}, {addr.postalCode}</p>
+                      <p>Sri Lanka</p>
+                      <p className="mt-2">Phone: {profileData.phone}</p>
+                    </div>
+                    <div className="flex gap-4 border-t border-[var(--border-color)] pt-3">
+                      <button className="text-[10px] font-bold uppercase tracking-wider text-gray-400 hover:text-gold transition-colors cursor-pointer">Edit</button>
+                      <button className="text-[10px] font-bold uppercase tracking-wider text-gray-400 hover:text-red-500 transition-colors cursor-pointer flex items-center gap-1"><FiTrash2 /> Remove</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           
           {activeTab === 'orders' && (
             <div className="bg-white dark:bg-gray-900 border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
-              <div className="border-b border-[var(--border-color)] pb-3">
+              <div className="border-b border-[var(--border-color)] pb-3 flex items-center gap-2">
+                <FiPackage className="text-gold" size={20} />
                 <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">
                   My Order History
                 </h2>
@@ -369,7 +429,6 @@ const UserProfile = () => {
                       </div>
 
                       <div className="p-4 space-y-4">
-                        {/* Status Timeline */}
                         {renderOrderTimeline(order)}
 
                         {order.orderItems?.map((item, idx) => (
@@ -401,7 +460,6 @@ const UserProfile = () => {
                           </div>
                         ))}
                       </div>
-
                     </div>
                   ))}
                 </div>
@@ -411,16 +469,20 @@ const UserProfile = () => {
 
           {activeTab === 'rewards' && (
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
-              <div className="border-b border-[var(--border-color)] pb-3">
+              <div className="border-b border-[var(--border-color)] pb-3 flex items-center gap-2">
+                <FiStar className="text-gold" size={20} />
                 <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">Reward Points</h2>
               </div>
               <div className="flex flex-col items-center justify-center space-y-4 py-8 text-center">
-                <div className="w-20 h-20 bg-gold/10 rounded-full flex items-center justify-center text-gold">
+                <div className="w-20 h-20 bg-gold/10 rounded-full flex items-center justify-center text-gold shadow-[0_0_15px_rgba(212,175,55,0.4)]">
                   <FiStar size={36} />
                 </div>
                 <div>
                   <h3 className="text-3xl font-extrabold font-sans text-gold">1,250 <span className="text-sm text-gray-500">pts</span></h3>
                   <p className="text-xs text-gray-400 uppercase font-bold tracking-widest mt-2">Available Balance</p>
+                </div>
+                <div className="max-w-sm text-xs text-gray-500 leading-relaxed mt-4">
+                  Redeem your points at checkout for exclusive discounts. Every $1 spent earns you 1 Elegance Point.
                 </div>
               </div>
             </div>
@@ -428,32 +490,82 @@ const UserProfile = () => {
 
           {activeTab === 'returns' && (
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
-              <div className="border-b border-[var(--border-color)] pb-3">
-                <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">Return Requests</h2>
+              <div className="border-b border-[var(--border-color)] pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FiRotateCcw className="text-gold" size={20} />
+                  <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">Returns & Exchanges</h2>
+                </div>
+                <button className="bg-gray-100 dark:bg-gray-800 hover:bg-gold hover:text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer">
+                  New Request
+                </button>
               </div>
               <div className="text-center py-12 text-gray-400">
-                <FiRotateCcw size={36} className="mx-auto text-gray-300 mb-2 stroke-1" />
-                <p className="text-xs">No return requests active.</p>
+                <FiRotateCcw size={36} className="mx-auto text-gray-300 mb-3 stroke-1" />
+                <p className="text-xs font-semibold">No active return requests.</p>
+                <p className="text-[10px] mt-1">If you need to return an item, click 'New Request' above.</p>
               </div>
             </div>
           )}
 
           {activeTab === 'notifications' && (
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
-              <div className="border-b border-[var(--border-color)] pb-3">
+              <div className="border-b border-[var(--border-color)] pb-3 flex items-center gap-2">
+                <FiBell className="text-gold" size={20} />
                 <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">Notifications</h2>
               </div>
               <div className="space-y-4">
-                <div className="p-4 bg-gold/5 border border-gold/20 rounded flex items-start gap-3">
-                  <FiBell className="text-gold mt-0.5" />
+                <div className="p-4 bg-gold/5 border border-gold/20 rounded-xl flex items-start gap-4 transition-colors hover:bg-gold/10 cursor-pointer">
+                  <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center text-gold shrink-0">
+                    <FiPackage size={14} />
+                  </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[var(--text-color)]">Welcome to Premium</h4>
-                    <p className="text-[10px] text-gray-500 mt-1">Your premium membership is active. Visit the Dream Dress Studio.</p>
+                    <h4 className="text-xs font-bold text-[var(--text-color)]">Order Shipped</h4>
+                    <p className="text-[10px] text-gray-500 mt-1">Your order #ord-1204 has been shipped and is on its way to you.</p>
+                    <p className="text-[9px] text-gold font-semibold mt-2 uppercase tracking-wider">2 days ago</p>
+                  </div>
+                </div>
+                <div className="p-4 border border-[var(--border-color)] rounded-xl flex items-start gap-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 shrink-0">
+                    <FiStar size={14} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[var(--text-color)]">Welcome to Elegance</h4>
+                    <p className="text-[10px] text-gray-500 mt-1">Thank you for joining. Explore our latest luxury collections.</p>
+                    <p className="text-[9px] text-gray-400 font-semibold mt-2 uppercase tracking-wider">1 week ago</p>
                   </div>
                 </div>
               </div>
             </div>
           )}
+
+          {activeTab === 'support' && (
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
+              <div className="border-b border-[var(--border-color)] pb-3 flex items-center gap-2">
+                <FiHelpCircle className="text-gold" size={20} />
+                <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">Help & Support</h2>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4 text-xs">
+                  <h3 className="font-bold text-sm">Need Assistance?</h3>
+                  <p className="text-gray-500 leading-relaxed">Our fashion consultants and support team are available 24/7 to assist you with sizing, custom orders, and returns.</p>
+                  <div className="space-y-2">
+                    <p className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><FiPhone className="text-gold" /> +94 11 234 5678</p>
+                    <p className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><FiMail className="text-gold" /> support@elegance.com</p>
+                  </div>
+                </div>
+
+                <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); toast.success('Message sent to support!'); }}>
+                  <input type="text" placeholder="Subject" className="w-full px-4 py-2 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold" required />
+                  <textarea rows="4" placeholder="How can we help you today?" className="w-full px-4 py-2 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold resize-none" required></textarea>
+                  <button type="submit" className="w-full py-2.5 bg-gold hover:bg-black text-white text-xs font-bold uppercase tracking-widest rounded transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-gold/20">
+                    <FiSend /> Send Message
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
         </main>
       </div>
     </div>

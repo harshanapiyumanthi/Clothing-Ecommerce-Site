@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiTrash2, FiMinus, FiPlus, FiSliders, FiX, FiCheck, FiInfo, FiEdit } from 'react-icons/fi';
+import { FiTrash2, FiMinus, FiPlus, FiSliders, FiX, FiCheck, FiInfo, FiEdit, FiHeart } from 'react-icons/fi';
 import { addToCart, removeFromCart } from '../redux/slices/cartSlice';
+import { toggleWishlist } from '../redux/slices/wishlistSlice';
 import { toast } from 'react-toastify';
 
 const Cart = () => {
@@ -96,6 +97,12 @@ const Cart = () => {
 
   const removeItem = (item) => {
     dispatch(removeFromCart({ id: item.id, size: item.size, color: item.color }));
+  };
+
+  const saveForLater = (item) => {
+    dispatch(toggleWishlist(item));
+    dispatch(removeFromCart({ id: item.id, size: item.size, color: item.color }));
+    toast.success(`${item.name} saved for later!`);
   };
 
   const handleApplyCoupon = () => {
@@ -220,9 +227,14 @@ const Cart = () => {
                         </div>
                       )}
 
-                      <button onClick={() => removeItem(item)} className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 mt-3 w-max transition-colors">
-                        <FiTrash2 /> Remove
-                      </button>
+                      <div className="flex flex-wrap items-center gap-4 mt-3">
+                        <button onClick={() => saveForLater(item)} className="text-[11px] font-bold uppercase tracking-wider text-gold hover:text-black flex items-center gap-1 transition-colors cursor-pointer">
+                          <FiHeart size={12} /> Save for Later
+                        </button>
+                        <button onClick={() => removeItem(item)} className="text-[11px] font-bold uppercase tracking-wider text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors cursor-pointer">
+                          <FiTrash2 size={12} /> Remove
+                        </button>
+                      </div>
                     </div>
                   </div>
                   

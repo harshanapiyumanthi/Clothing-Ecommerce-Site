@@ -4,7 +4,6 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const path = require('path');
 const helmet = require('helmet');
-const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
@@ -14,7 +13,6 @@ const app = express();
 
 // ─── Middlewares ─────────────────────────────────────────────────────────────
 app.use(helmet());
-app.use(mongoSanitize());
 app.use(xss());
 app.use(compression());
 

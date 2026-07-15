@@ -322,6 +322,66 @@ const ProductDetails = () => {
     setShowLookModal(true);
   };
 
+  const handleBuyNow = () => {
+    if (product.stock === 0) {
+      toast.error('This product is currently out of stock.');
+      return;
+    }
+
+    if (!selectedSize && !showCustomizer && product.sizes?.length > 0) {
+      toast.warning('Please select a size before purchasing.');
+      return;
+    }
+
+    const isCustom = showCustomizer && product.category !== 'Accessories';
+    let itemId = product.id;
+    if (isCustom) {
+      itemId = `${product.id}-custom-${Date.now()}`;
+    } else {
+      itemId = `${product.id}-${selectedSize}-${selectedColor}`;
+    }
+
+    const finalPrice = isCustom ? product.price + getCustomSurcharge() : product.price;
+    const customizationData = isCustom ? {
+      fabric,
+      pattern,
+      color: selectedColor,
+      customColor,
+      neckDesign,
+      sleeveDesign,
+      dressLength,
+      fit,
+      buttons,
+      sizeType,
+      standardSize,
+      measurements: sizeType === 'Custom' ? measurements : null,
+      pinterestUrl,
+      referenceImageUrl,
+      sketchUrl,
+      inspirationUrl,
+      specialInstructions,
+      productionTime: '5 weeks'
+    } : null;
+
+    dispatch(addToCart({
+      id: itemId,
+      productId: product.id,
+      name: product.name + (isCustom ? ' (Bespoke Custom)' : ''),
+      price: finalPrice,
+      basePrice: product.price,
+      image: product.images?.[0]?.url || product.images?.[0] || 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?q=80',
+      qty,
+      size: isCustom && sizeType === 'Custom' ? 'Custom' : selectedSize,
+      color: selectedColor,
+      isCustom,
+      customization: customizationData
+    }));
+
+    toast.success('Redirecting to secure checkout...');
+    trackBackendInteraction(product.id, 'buy_now');
+    navigate('/checkout');
+  };
+
   const handleAccessoryToggle = (accId) => {
     if (selectedAccessories.includes(accId)) {
       setSelectedAccessories(selectedAccessories.filter(id => id !== accId));
@@ -516,9 +576,17 @@ const ProductDetails = () => {
             <button 
               type="button"
               onClick={handleAddMainToCart}
-              className="flex-grow h-12 bg-gold hover:bg-black text-white uppercase tracking-wider font-bold text-xs transition-all duration-300 flex items-center justify-center gap-1.5 shadow-md shadow-gold/25 cursor-pointer"
+              className="flex-grow h-12 bg-white text-black border-2 border-black hover:bg-black hover:text-white uppercase tracking-wider font-bold text-xs transition-all duration-300 flex items-center justify-center gap-1.5 shadow-md shadow-black/10 cursor-pointer"
             >
               <FiShoppingBag /> Add to Cart
+            </button>
+            
+            <button 
+              type="button"
+              onClick={handleBuyNow}
+              className="flex-grow h-12 bg-gold hover:bg-black text-white uppercase tracking-wider font-bold text-xs transition-all duration-300 flex items-center justify-center gap-1.5 shadow-md shadow-gold/25 cursor-pointer"
+            >
+              Buy Now
             </button>
 
             {product.category !== 'Accessories' && (
