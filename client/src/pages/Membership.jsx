@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiCheck, FiStar, FiCrown, FiShield } from 'react-icons/fi';
+import { FiCheck, FiStar, FiAward, FiShield } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -114,7 +114,7 @@ const Membership = () => {
   };
 
   const getIcon = (name) => {
-    if (name === 'VIP') return <FiCrown size={24} />;
+    if (name === 'VIP') return <FiAward size={24} />;
     if (name === 'Premium') return <FiStar size={24} />;
     return <FiShield size={24} />;
   };

@@ -84,12 +84,11 @@ const CustomerManager = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="border-b border-[var(--border-color)] bg-gray-50 dark:bg-gray-900/40 text-gray-500 font-semibold">
+              <tr className="border-b border-[var(--border-color)] bg-gray-50 dark:bg-gray-900/40 text-gray-500 font-semibold text-xs uppercase tracking-wider">
                 <th className="p-4">Customer</th>
                 <th className="p-4">Email</th>
-                <th className="p-4">Phone</th>
-                <th className="p-4">Joined Date</th>
-                <th className="p-4 font-sans">Total Orders</th>
+                <th className="p-4">Membership</th>
+                <th className="p-4 font-sans">Orders</th>
                 <th className="p-4 font-sans">Total Spent</th>
                 <th className="p-4 text-center">Action</th>
               </tr>
@@ -120,19 +119,22 @@ const CustomerManager = () => {
                       </td>
 
                       {/* Email */}
-                      <td className="p-4 font-medium opacity-85">{cust.email}</td>
+                      <td className="p-4 font-medium opacity-85 text-sm">{cust.email}</td>
 
-                      {/* Phone */}
-                      <td className="p-4 text-gray-500">{cust.phone || 'N/A'}</td>
-
-                      {/* Joined Date */}
-                      <td className="p-4 text-gray-500 font-sans">
-                        {new Date(cust.joinDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {/* Membership */}
+                      <td className="p-4">
+                        <span className={`px-2 py-1 text-[9px] font-bold uppercase rounded-full tracking-wider ${
+                          cust.membershipTier === 'VIP' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400' :
+                          cust.membershipTier === 'Premium' ? 'bg-gold/15 text-gold border border-gold/30' :
+                          'bg-gray-100 text-gray-500 dark:bg-gray-800'
+                        }`}>
+                          {cust.membershipTier || 'Free'}
+                        </span>
                       </td>
 
                       {/* Total Orders */}
                       <td className="p-4 font-bold font-sans">
-                        {custOrders.length} orders
+                        {custOrders.length}
                       </td>
 
                       {/* Total Spent */}
@@ -263,6 +265,29 @@ const CustomerManager = () => {
                     ))
                   )}
                 </div>
+              </div>
+
+              {/* Admin Notes */}
+              <div className="space-y-2 border-t border-[var(--border-color)] pt-4">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-gold">Admin Notes</h4>
+                <textarea
+                  defaultValue={localStorage.getItem(`admin_note_${selectedCustomer?.id}`) || ''}
+                  onChange={e => localStorage.setItem(`admin_note_${selectedCustomer?.id}`, e.target.value)}
+                  rows={3}
+                  placeholder="Add private notes about this customer..."
+                  className="w-full px-3 py-2 border border-[var(--border-color)] bg-transparent rounded-lg outline-none focus:border-gold text-sm resize-none"
+                />
+              </div>
+
+              {/* Danger Zone */}
+              <div className="border-t border-red-200 dark:border-red-900/30 pt-4">
+                <button
+                  type="button"
+                  onClick={() => { if (window.confirm('Suspend this account? The customer will not be able to login.')) { toast.success(`${selectedCustomer?.name}'s account suspended`); setShowDrawer(false); } }}
+                  className="px-4 py-2 bg-red-50 dark:bg-red-950/20 text-red-600 border border-red-200 dark:border-red-900/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-red-100 transition-colors cursor-pointer"
+                >
+                  🚫 Suspend Account
+                </button>
               </div>
 
             </div>

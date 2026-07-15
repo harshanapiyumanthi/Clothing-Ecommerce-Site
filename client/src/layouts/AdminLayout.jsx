@@ -39,16 +39,29 @@ const AdminLayout = ({ children, activeTab, setActiveTab }) => {
   };
 
   const navItems = [
-    { id: 'dashboard', name: 'Dashboard', icon: <FiGrid size={18} /> },
-    { id: 'products', name: 'Products', icon: <FiBox size={18} /> },
-    { id: 'categories', name: 'Categories', icon: <FiLayers size={18} /> },
-    { id: 'orders', name: 'Orders', icon: <FiShoppingCart size={18} /> },
-    { id: 'customers', name: 'Customers', icon: <FiUsers size={18} /> },
-    { id: 'reports', name: 'Reports', icon: <FiTrendingUp size={18} /> },
-    { id: 'recommendations', name: 'Recommendations', icon: <FiHeart size={18} /> },
-    { id: 'customizations', name: 'Customization Orders', icon: <FiSliders size={18} /> },
-    { id: 'memberships', name: 'Membership & Loyalty', icon: <FiStar size={18} /> },
-    { id: 'settings', name: 'Settings', icon: <FiSettings size={18} /> },
+    // Core
+    { id: 'dashboard',      name: 'Dashboard',            icon: <FiGrid size={16} />,        group: 'Overview' },
+    // Catalogue
+    { id: 'products',       name: 'Products',             icon: <FiBox size={16} />,         group: 'Catalogue' },
+    { id: 'categories',     name: 'Categories',           icon: <FiLayers size={16} />,      group: 'Catalogue' },
+    { id: 'colors',         name: 'Colors',               icon: <FiSliders size={16} />,     group: 'Catalogue' },
+    { id: 'fabrics',        name: 'Fabrics',              icon: <FiSliders size={16} />,     group: 'Catalogue' },
+    { id: 'inventory',      name: 'Inventory',            icon: <FiBox size={16} />,         group: 'Catalogue' },
+    // Orders
+    { id: 'orders',         name: 'Orders',               icon: <FiShoppingCart size={16} />, group: 'Orders' },
+    { id: 'customizations', name: 'Customization Orders', icon: <FiSliders size={16} />,     group: 'Orders' },
+    { id: 'recommendations',name: 'Recommendations',      icon: <FiHeart size={16} />,       group: 'Orders' },
+    // Customers
+    { id: 'customers',      name: 'Customers',            icon: <FiUsers size={16} />,       group: 'Customers' },
+    { id: 'memberships',    name: 'Membership & Loyalty', icon: <FiStar size={16} />,        group: 'Customers' },
+    { id: 'coupons',        name: 'Coupons',              icon: <FiGrid size={16} />,        group: 'Customers' },
+    // Content
+    { id: 'reviews',        name: 'Reviews',              icon: <FiStar size={16} />,        group: 'Content' },
+    { id: 'marketing',      name: 'Marketing',            icon: <FiTrendingUp size={16} />,  group: 'Content' },
+    { id: 'content',        name: 'Content Pages',        icon: <FiLayers size={16} />,      group: 'Content' },
+    // Business
+    { id: 'reports',        name: 'Reports',              icon: <FiTrendingUp size={16} />,  group: 'Business' },
+    { id: 'settings',       name: 'Settings',             icon: <FiSettings size={16} />,    group: 'Business' },
   ];
 
   return (
@@ -85,24 +98,29 @@ const AdminLayout = ({ children, activeTab, setActiveTab }) => {
           </div>
 
           {/* Sidebar Navigation */}
-          <nav className="p-4 space-y-1">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setSidebarOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium tracking-wide uppercase transition-all rounded duration-200 cursor-pointer ${
-                  activeTab === item.id
-                    ? 'bg-gold text-white shadow-md shadow-gold/20 scale-[1.02]'
-                    : 'hover:bg-gray-150 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-[var(--text-color)]'
-                }`}
-              >
-                {item.icon}
-                <span>{item.name}</span>
-              </button>
-            ))}
+          <nav className="p-3 space-y-0.5 overflow-y-auto flex-1">
+            {(() => {
+              const groups = [...new Set(navItems.map(i => i.group))];
+              return groups.map(group => (
+                <div key={group}>
+                  <p className="px-3 pt-4 pb-1 text-[9px] font-bold uppercase tracking-widest text-gray-400">{group}</p>
+                  {navItems.filter(i => i.group === group).map(item => (
+                    <button
+                      key={item.id}
+                      onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold tracking-wide uppercase transition-all rounded-lg duration-200 cursor-pointer ${
+                        activeTab === item.id
+                          ? 'bg-gold text-white shadow-md shadow-gold/20'
+                          : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-[var(--text-color)]'
+                      }`}
+                    >
+                      {item.icon}
+                      <span>{item.name}</span>
+                    </button>
+                  ))}
+                </div>
+              ));
+            })()}
           </nav>
         </div>
 
