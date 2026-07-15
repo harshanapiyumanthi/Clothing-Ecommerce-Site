@@ -8,6 +8,8 @@ const couponSchema = new mongoose.Schema({
     maxUsage: { type: Number, default: 100 },
     usedCount: { type: Number, default: 0 },
     expiresAt: { type: Date, required: true },
+    memberOnly: { type: Boolean, default: false },
+    requiredPoints: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 

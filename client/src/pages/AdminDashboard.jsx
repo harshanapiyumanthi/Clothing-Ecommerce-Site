@@ -10,6 +10,7 @@ import CustomerManager from '../components/admin/CustomerManager';
 import ReportsManager from '../components/admin/ReportsManager';
 import RecommendationManager from '../components/admin/RecommendationManager';
 import CustomOrderManager from '../components/admin/CustomOrderManager';
+import MembershipManager from '../components/admin/MembershipManager';
 import SettingsManager from '../components/admin/SettingsManager';
 
 const AdminDashboard = () => {
@@ -33,6 +34,8 @@ const AdminDashboard = () => {
         return <RecommendationManager />;
       case 'customizations':
         return <CustomOrderManager />;
+      case 'memberships':
+        return <MembershipManager />;
       case 'settings':
         return <SettingsManager />;
       default:

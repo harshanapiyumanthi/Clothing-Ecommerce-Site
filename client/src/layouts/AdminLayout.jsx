@@ -47,6 +47,7 @@ const AdminLayout = ({ children, activeTab, setActiveTab }) => {
     { id: 'reports', name: 'Reports', icon: <FiTrendingUp size={18} /> },
     { id: 'recommendations', name: 'Recommendations', icon: <FiHeart size={18} /> },
     { id: 'customizations', name: 'Customization Orders', icon: <FiSliders size={18} /> },
+    { id: 'memberships', name: 'Membership & Loyalty', icon: <FiStar size={18} /> },
     { id: 'settings', name: 'Settings', icon: <FiSettings size={18} /> },
   ];
 

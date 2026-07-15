@@ -25,6 +25,7 @@ const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const DreamDressStudio = lazy(() => import('./pages/DreamDressStudio'));
+const Membership = lazy(() => import('./pages/Membership'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Info Pages
@@ -64,6 +65,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/membership" element={<Membership />} />
 
             {/* Protected Customer Routes */}
             <Route element={<ProtectedRoute />}>

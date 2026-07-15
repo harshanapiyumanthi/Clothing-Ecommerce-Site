@@ -225,7 +225,7 @@ const UserProfile = () => {
               {userInfo?.membershipTier === 'Premium' && (
                 <NavButton id="studio" icon={FiStar} label="Studio Collection" />
               )}
-              <NavButton id="rewards" icon={FiStar} label="Reward Points" />
+              <NavButton id="rewards" icon={FiStar} label="Rewards & Membership" />
               <NavButton id="returns" icon={FiRotateCcw} label="Returns" />
               <NavButton id="notifications" icon={FiBell} label="Notifications" />
               <NavButton id="support" icon={FiHelpCircle} label="Help & Support" />
@@ -500,21 +500,65 @@ const UserProfile = () => {
           )}
 
           {activeTab === 'rewards' && (
-            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
-              <div className="border-b border-[var(--border-color)] pb-3 flex items-center gap-2">
-                <FiStar className="text-gold" size={20} />
-                <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">Reward Points</h2>
+            <div className="space-y-6">
+              {/* Membership Status Card */}
+              <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl relative overflow-hidden">
+                <div className={`absolute top-0 left-0 w-full h-1 ${userInfo?.membershipTier === 'Premium' ? 'bg-gold' : userInfo?.membershipTier === 'VIP' ? 'bg-black' : 'bg-gray-300'}`}></div>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                  <div>
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-2">Current Membership</h2>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-3xl font-bold uppercase tracking-wider ${userInfo?.membershipTier === 'Premium' ? 'text-gold' : userInfo?.membershipTier === 'VIP' ? 'text-[var(--text-color)]' : 'text-gray-400'}`}>
+                        {userInfo?.membershipTier || 'Free'}
+                      </span>
+                      {userInfo?.membershipTier !== 'Free' && (
+                        <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-widest rounded-full">Active</span>
+                      )}
+                    </div>
+                    {userInfo?.membershipTier !== 'Free' && userInfo?.membershipExpiry && (
+                      <p className="text-xs text-gray-500 mt-2 font-mono">Expires on: {new Date(userInfo.membershipExpiry).toLocaleDateString()}</p>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-col gap-3 w-full md:w-auto">
+                    {userInfo?.membershipTier === 'Free' ? (
+                      <button onClick={() => navigate('/membership')} className="px-6 py-3 bg-gold text-white text-xs font-bold uppercase tracking-widest rounded shadow-lg shadow-gold/20 hover:bg-black transition-colors">
+                        Upgrade Membership
+                      </button>
+                    ) : (
+                      <>
+                        <button onClick={() => navigate('/membership')} className="px-6 py-2.5 bg-black text-white text-[10px] font-bold uppercase tracking-widest rounded hover:bg-gold transition-colors">
+                          Renew Membership
+                        </button>
+                        <button onClick={() => navigate('/membership')} className="px-6 py-2.5 border border-[var(--border-color)] text-[var(--text-color)] text-[10px] font-bold uppercase tracking-widest rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                          Compare Plans
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-col items-center justify-center space-y-4 py-8 text-center">
-                <div className="w-20 h-20 bg-gold/10 rounded-full flex items-center justify-center text-gold shadow-[0_0_15px_rgba(212,175,55,0.4)]">
-                  <FiStar size={36} />
+
+              {/* Reward Points Card */}
+              <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-gold/10 rounded-full flex items-center justify-center text-gold shrink-0">
+                    <FiStar size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-3xl font-extrabold font-sans text-[var(--text-color)]">
+                      {userInfo?.rewardPoints || 0} <span className="text-sm text-gray-500 font-normal">pts</span>
+                    </h3>
+                    <p className="text-xs text-gray-400 uppercase font-bold tracking-widest mt-1">Available Balance</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-3xl font-extrabold font-sans text-gold">1,250 <span className="text-sm text-gray-500">pts</span></h3>
-                  <p className="text-xs text-gray-400 uppercase font-bold tracking-widest mt-2">Available Balance</p>
-                </div>
-                <div className="max-w-sm text-xs text-gray-500 leading-relaxed mt-4">
-                  Redeem your points at checkout for exclusive discounts. Every $1 spent earns you 1 Elegance Point.
+                
+                <div className="w-full md:w-auto border-t md:border-t-0 md:border-l border-[var(--border-color)] pt-6 md:pt-0 md:pl-8">
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2">Redeem Points</h4>
+                  <p className="text-[10px] text-gray-500 max-w-xs mb-4 leading-relaxed">Exchange your points for exclusive discount coupons. 100 points = $10 discount on your next order.</p>
+                  <button className="w-full px-4 py-2 bg-transparent border border-gold text-gold hover:bg-gold hover:text-white text-[10px] font-bold uppercase tracking-widest rounded transition-colors">
+                    View Rewards Catalog
+                  </button>
                 </div>
               </div>
             </div>
