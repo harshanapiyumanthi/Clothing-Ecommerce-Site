@@ -258,6 +258,34 @@ const getCustomerById = asyncHandler(async (req, res) => {
     });
 });
 
+// @desc    Export sales report as CSV
+// @route   GET /api/admin/reports/export
+// @access  Private/Admin
+const exportSalesReport = asyncHandler(async (req, res) => {
+    const orders = await Order.find()
+        .populate('user', 'name email')
+        .sort({ createdAt: -1 });
+
+    let csvContent = 'Order ID,Customer Name,Customer Email,Total Price,Payment Method,Is Paid,Order Status,Date\n';
+
+    orders.forEach(order => {
+        const orderId = order._id.toString();
+        const userName = order.user ? order.user.name.replace(/"/g, '""') : 'Guest';
+        const userEmail = order.user ? order.user.email : 'N/A';
+        const totalPrice = order.totalPrice;
+        const paymentMethod = order.paymentMethod;
+        const isPaid = order.isPaid ? 'Yes' : 'No';
+        const orderStatus = order.orderStatus;
+        const date = order.createdAt.toISOString();
+
+        csvContent += `"${orderId}","${userName}","${userEmail}",${totalPrice},"${paymentMethod}","${isPaid}","${orderStatus}","${date}"\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=sales-report.csv');
+    res.status(200).send(csvContent);
+});
+
 module.exports = {
     getSalesAnalytics,
     getMonthlySales,
@@ -266,4 +294,5 @@ module.exports = {
     getRevenueByDateRange,
     getCustomers,
     getCustomerById,
+    exportSalesReport,
 };

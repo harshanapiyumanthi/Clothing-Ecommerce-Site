@@ -8,7 +8,7 @@ const customOrderSchema = new mongoose.Schema({
     color: { type: String },
     budget: { type: Number },
     referenceImages: [{ public_id: String, url: String }],
-    status: { type: String, enum: ['Pending', 'Reviewing', 'Quoted', 'Accepted', 'InProgress', 'Completed', 'Rejected'], default: 'Pending' },
+    status: { type: String, enum: ['Received', 'Design Review', 'Cutting', 'Tailoring', 'Quality Check', 'Ready', 'Delivered', 'Pending', 'Rejected'], default: 'Received' },
     adminNote: { type: String },
     quotedPrice: { type: Number },
     estimatedDelivery: { type: Date },

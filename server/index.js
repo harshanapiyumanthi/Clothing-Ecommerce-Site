@@ -13,7 +13,13 @@ app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
     credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({
+    verify: (req, res, buf) => {
+        if (req.originalUrl.startsWith('/api/payments/webhook')) {
+            req.rawBody = buf;
+        }
+    }
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -28,6 +34,9 @@ const adminRoutes       = require('./routes/adminRoutes');
 const bannerRoutes      = require('./routes/bannerRoutes');
 const customOrderRoutes = require('./routes/customOrderRoutes');
 const recommendationRoutes = require('./routes/recommendationRoutes');
+const couponRoutes      = require('./routes/couponRoutes');
+const paymentRoutes     = require('./routes/paymentRoutes');
+const reviewRoutes      = require('./routes/reviewRoutes');
 
 app.get('/', (req, res) => res.json({ message: '🌟 Elegance Fashion API is running' }));
 
@@ -41,6 +50,9 @@ app.use('/api/admin',         adminRoutes);
 app.use('/api/banners',       bannerRoutes);
 app.use('/api/custom-orders', customOrderRoutes);
 app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/coupons',         couponRoutes);
+app.use('/api/payments',        paymentRoutes);
+app.use('/api/reviews',         reviewRoutes);
 
 // ─── Error Handlers ──────────────────────────────────────────────────────────
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
