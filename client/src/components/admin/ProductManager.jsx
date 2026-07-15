@@ -45,7 +45,8 @@ const ProductManager = () => {
     isFeatured: false,
     isBestSeller: false,
     tags: '',
-    imageUrl: ''
+    imageUrl: '',
+    recommendations: []
   });
 
   // Delete State
@@ -87,7 +88,8 @@ const ProductManager = () => {
         isFeatured: product.isFeatured || false,
         isBestSeller: product.isBestSeller || false,
         tags: product.tags ? product.tags.join(', ') : '',
-        imageUrl: product.images?.[0]?.url || ''
+        imageUrl: product.images?.[0]?.url || '',
+        recommendations: product.recommendations || []
       });
     } else {
       setEditingProduct(null);
@@ -104,7 +106,8 @@ const ProductManager = () => {
         isFeatured: false,
         isBestSeller: false,
         tags: '',
-        imageUrl: ''
+        imageUrl: '',
+        recommendations: []
       });
     }
     setShowModal(true);
@@ -136,6 +139,15 @@ const ProductManager = () => {
     });
   };
 
+  const handleToggleRecommendation = (prodId) => {
+    setFormData(prev => {
+      const recommendations = prev.recommendations.includes(prodId)
+        ? prev.recommendations.filter(id => id !== prodId)
+        : [...prev.recommendations, prodId];
+      return { ...prev, recommendations };
+    });
+  };
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.price || !formData.stock) {
@@ -162,6 +174,7 @@ const ProductManager = () => {
         isFeatured: formData.isFeatured,
         isBestSeller: formData.isBestSeller,
         tags: tagsArray,
+        recommendations: formData.recommendations,
         images: [{ url: formData.imageUrl || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=600' }]
       };
 
@@ -614,6 +627,38 @@ const ProductManager = () => {
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Recommendations Selection */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Assign Matching Recommendations (Complete Your Look)</label>
+                <div className="border border-[var(--border-color)] rounded-lg p-3 max-h-48 overflow-y-auto custom-scrollbar flex flex-col gap-2">
+                  {products.filter(p => p.id !== editingProduct?.id).map(prod => {
+                    const isSelected = formData.recommendations.includes(prod.id);
+                    return (
+                      <label key={prod.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded cursor-pointer transition-colors border border-transparent hover:border-[var(--border-color)]">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleRecommendation(prod.id)}
+                          className="accent-gold w-4 h-4 rounded"
+                        />
+                        <div className="w-8 h-10 overflow-hidden rounded bg-gray-100 flex items-center justify-center border border-[var(--border-color)]">
+                          {prod.images?.[0]?.url ? (
+                            <img src={prod.images[0].url} className="w-full h-full object-cover" alt="" />
+                          ) : (
+                            <span className="text-xs text-gray-400">{prod.name.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold leading-tight">{prod.name}</span>
+                          <span className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">{prod.category}</span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                  {products.length <= 1 && <p className="text-xs text-gray-400 p-2">Add more products to create recommendations.</p>}
                 </div>
               </div>
 

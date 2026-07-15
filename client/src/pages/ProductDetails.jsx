@@ -53,12 +53,9 @@ const ProductDetails = () => {
   
   const [showSizeGuideModal, setShowSizeGuideModal] = useState(false);
 
-  // Complete The Look popup state
-  const [showLookModal, setShowLookModal] = useState(false);
+  // Complete The Look outfit state
   const [accessories, setAccessories] = useState([]);
-  const [addedAccessories, setAddedAccessories] = useState([]);
-  const [skippedAccessories, setSkippedAccessories] = useState([]);
-  const [selectedAccessories, setSelectedAccessories] = useState([]);
+  const [outfitItems, setOutfitItems] = useState([]);
 
   // Reviews & ratings state
   const [reviewsList, setReviewsList] = useState([]);
@@ -138,22 +135,20 @@ const ProductDetails = () => {
       const savedReviews = JSON.parse(localStorage.getItem(`product_reviews_${found.id}`) || '[]');
       setReviewsList(savedReviews);
 
-      // Load assigned accessories
-      try {
-        const response = await axios.get(`http://localhost:5000/api/recommendations/assigned/${id}`);
-        if (response.data && response.data.success && response.data.products.length > 0) {
-          setAccessories(response.data.products);
-        } else {
-          throw new Error('No assigned accessories');
-        }
-      } catch (err) {
+      // Load Complete Your Look Recommendations
+      if (found.recommendations && found.recommendations.length > 0) {
+        // filter out stock === 0
+        const availableRecs = found.recommendations.filter(r => r.stock !== 0);
+        setAccessories(availableRecs);
+      } else {
+        // Fallback mock recommendations if none assigned
         const recs = JSON.parse(localStorage.getItem('admin_recommendations') || '[]');
         const prodRec = recs.find(r => r.productId.toString() === id.toString());
         let matchedAccs = [];
         if (prodRec && prodRec.assignedProducts?.length > 0) {
-          matchedAccs = productsList.filter(p => prodRec.assignedProducts.includes(p.id));
+          matchedAccs = productsList.filter(p => prodRec.assignedProducts.includes(p.id) && p.stock !== 0);
         } else {
-          matchedAccs = productsList.filter(p => p.category === 'Accessories' || p.category?.name === 'Accessories').slice(0, 3);
+          matchedAccs = productsList.filter(p => (p.category === 'Accessories' || p.category?.name === 'Accessories') && p.stock !== 0).slice(0, 3);
         }
         setAccessories(matchedAccs);
       }
@@ -222,12 +217,7 @@ const ProductDetails = () => {
     loadData();
   }, [id]);
 
-  // Load accessory recommendations from state helper
-  const loadRecommendations = () => {
-    // Already pre-loaded in useEffect to setAccessories, reset states
-    setAddedAccessories([]);
-    setSkippedAccessories([]);
-  };
+
 
   const getCustomSurcharge = () => {
     let extra = 0;
@@ -317,9 +307,6 @@ const ProductDetails = () => {
     toast.success(`${product.name} added to cart!`);
     trackBackendInteraction(product.id, 'cart');
 
-    // Trigger Recommendation Popup
-    loadRecommendations();
-    setShowLookModal(true);
   };
 
   const handleBuyNow = () => {
@@ -382,62 +369,33 @@ const ProductDetails = () => {
     navigate('/checkout');
   };
 
-  const handleAccessoryToggle = (accId) => {
-    if (selectedAccessories.includes(accId)) {
-      setSelectedAccessories(selectedAccessories.filter(id => id !== accId));
+  const handleAddOutfitItem = (acc) => {
+    if (outfitItems.find(item => item.id === acc.id || item.id === acc._id)) {
+      setOutfitItems(outfitItems.filter(item => item.id !== (acc.id || acc._id)));
     } else {
-      setSelectedAccessories([...selectedAccessories, accId]);
+      setOutfitItems([...outfitItems, acc]);
     }
   };
 
-  const handleSkipLook = () => {
-    setShowLookModal(false);
-    setSelectedAccessories([]);
-    toast.info('Bespoke matching accessories skipped.');
-  };
-
-  const handleAddLook = () => {
-    selectedAccessories.forEach(accId => {
-      const acc = accessories.find(a => (a.id || a._id) === accId);
-      if (acc) {
-        dispatch(addToCart({
-          id: acc.id || acc._id,
-          productId: acc.id || acc._id,
-          name: acc.name,
-          price: acc.discountPrice || acc.price,
-          image: acc.images?.[0]?.url || acc.images?.[0] || 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80',
-          qty: 1,
-          size: acc.sizes?.[0] || 'One Size',
-          color: acc.colors?.[0] || 'Neutral',
-          isCustom: false
-        }));
-      }
+  const handleAddEntireOutfit = () => {
+    if (outfitItems.length === 0) return;
+    
+    outfitItems.forEach(acc => {
+      dispatch(addToCart({
+        id: acc.id || acc._id,
+        productId: acc.id || acc._id,
+        name: acc.name,
+        price: acc.discountPrice || acc.price,
+        image: acc.images?.[0]?.url || acc.images?.[0] || 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80',
+        qty: 1,
+        size: acc.sizes?.[0] || 'One Size',
+        color: acc.colors?.[0] || 'Neutral',
+        isCustom: false
+      }));
     });
-    toast.success('Matching accessories added to cart!');
-    setShowLookModal(false);
-    setSelectedAccessories([]);
-  };
-
-  const handleAddAccessory = (acc) => {
-    dispatch(addToCart({
-      id: acc.id || acc._id,
-      productId: acc.id || acc._id,
-      name: acc.name,
-      price: acc.discountPrice || acc.price,
-      image: acc.images?.[0]?.url || acc.images?.[0] || 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80',
-      qty: 1,
-      size: acc.sizes?.[0] || 'One Size',
-      color: acc.colors?.[0] || 'Neutral',
-      isCustom: false
-    }));
-    setAddedAccessories([...addedAccessories, acc.id || acc._id]);
-    toast.success(`${acc.name} added to cart!`);
-    trackBackendInteraction(acc.id || acc._id, 'cart');
-  };
-
-  const handleSkipAccessory = (accId) => {
-    setSkippedAccessories([...skippedAccessories, accId]);
-    toast.info('Accessory recommendation skipped.');
+    
+    toast.success('Your complete outfit has been added to the cart!');
+    setOutfitItems([]);
   };
 
   const handleReviewSubmit = (e) => {
@@ -928,84 +886,103 @@ const ProductDetails = () => {
         </div>
       </div>
 
-      {/* Complete Your Look popup Modal */}
-      <AnimatePresence>
-        {showLookModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl w-full max-w-xl p-6 shadow-2xl space-y-6 relative overflow-hidden"
-            >
-              {/* Close Button */}
-              <button 
-                onClick={handleSkipLook}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gold p-1 cursor-pointer"
-              >
-                <FiX size={18} />
-              </button>
-
-              <div className="text-center space-y-1">
-                <h3 className="text-xl font-bold uppercase tracking-widest text-gold font-sans">Complete Your Look</h3>
-                <p className="text-xs text-gray-400">Pair this gorgeous item with matching luxury accessories hand-picked by our atelier styling team.</p>
-              </div>
-
-              {/* Recommendations list */}
-              <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
-                {accessories.length === 0 ? (
-                  <p className="text-center text-xs text-gray-500 py-6">No matching accessories available at this time.</p>
-                ) : (
-                  accessories.map(acc => (
-                    <div 
-                      key={acc.id} 
-                      onClick={() => handleAccessoryToggle(acc.id)}
-                      className={`border p-3.5 rounded-xl flex items-center justify-between cursor-pointer transition-all duration-200 select-none ${selectedAccessories.includes(acc.id) ? 'border-gold bg-gold/5 shadow-sm' : 'border-[var(--border-color)] hover:border-gray-400'}`}
-                    >
-                      <div className="flex items-center gap-3.5 text-xs">
-                        <img 
-                          src={acc.images?.[0]?.url || acc.images?.[0] || 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80'} 
-                          alt={acc.name} 
-                          className="h-14 w-11 object-cover rounded bg-gray-150 border border-[var(--border-color)]" 
-                        />
-                        <div>
-                          <h4 className="font-bold truncate max-w-[200px] text-gray-800 dark:text-gray-150">{acc.name}</h4>
-                          <p className="text-[10px] text-gray-400 mt-0.5">{acc.brand || 'Atelier Collection'}</p>
-                          <p className="text-xs font-bold text-gold font-sans mt-1.5">${acc.discountPrice || acc.price}</p>
-                        </div>
+      {/* ✨ Complete Your Look Section */}
+      {accessories.length > 0 && (
+        <section className="mt-12 pt-12 border-t border-[var(--border-color)]">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-8">
+            <div className="space-y-2">
+              <h3 className="text-2xl font-bold uppercase tracking-widest text-[var(--text-color)] flex items-center gap-3">
+                <span className="text-gold">✨</span> Complete Your Look
+              </h3>
+              <p className="text-sm text-gray-500">We've selected matching items to complete your outfit.</p>
+            </div>
+            
+            {/* Your Outfit Builder Summary Bar */}
+            <AnimatePresence>
+              {outfitItems.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  className="bg-gold/10 border border-gold/30 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-6 shadow-lg"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold uppercase tracking-widest text-gold mb-1">Your Outfit ({outfitItems.length} items)</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex -space-x-2">
+                        {outfitItems.map(item => (
+                          <img 
+                            key={item.id || item._id} 
+                            src={item.images?.[0]?.url || item.images?.[0]} 
+                            alt={item.name}
+                            className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                            title={item.name}
+                          />
+                        ))}
                       </div>
-
-                      {/* Checkbox indicator */}
-                      <div className={`h-6 w-6 rounded-full border flex items-center justify-center transition-colors ${selectedAccessories.includes(acc.id) ? 'bg-gold border-gold text-white' : 'border-gray-300'}`}>
-                        {selectedAccessories.includes(acc.id) && <FiCheck size={14} />}
-                      </div>
-
+                      <span className="text-sm font-bold ml-2">
+                        Total: <span className="text-gold font-sans">${outfitItems.reduce((acc, curr) => acc + (curr.discountPrice || curr.price), 0).toFixed(2)}</span>
+                      </span>
                     </div>
-                  ))
-                )}
-              </div>
-
-              {/* Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--border-color)]">
-                <button
-                  onClick={handleSkipLook}
-                  className="px-4 py-2 border border-[var(--border-color)] hover:border-gold hover:text-gold rounded text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  Skip
-                </button>
-                <button
-                  onClick={handleAddLook}
-                  disabled={selectedAccessories.length === 0}
-                  className="px-5 py-2.5 bg-gold text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-gold/25 cursor-pointer"
-                >
-                  Add Selected & Continue
-                </button>
-              </div>
-
-            </motion.div>
+                  </div>
+                  <button 
+                    onClick={handleAddEntireOutfit}
+                    className="bg-gold hover:bg-black text-white text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-lg transition-colors shadow-md whitespace-nowrap"
+                  >
+                    Add Outfit to Cart
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        )}
-      </AnimatePresence>
+
+          {/* Horizontal Scrolling Cards */}
+          <div className="flex overflow-x-auto gap-6 pb-6 custom-scrollbar snap-x">
+            {accessories.map((acc) => (
+              <div 
+                key={acc.id || acc._id} 
+                className="snap-start shrink-0 w-64 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl overflow-hidden hover:shadow-xl transition-shadow group flex flex-col"
+              >
+                <div className="relative h-72 bg-gray-150">
+                  <img 
+                    src={acc.images?.[0]?.url || acc.images?.[0] || 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80'} 
+                    alt={acc.name} 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
+                    <Link
+                      to={`/product/${acc.id || acc._id}`}
+                      className="p-3 bg-white text-gray-900 rounded-full hover:bg-gold hover:text-white transition-colors shadow"
+                      title="Quick View"
+                    >
+                      <FiEye size={20} />
+                    </Link>
+                  </div>
+                </div>
+                
+                <div className="p-4 flex flex-col flex-grow">
+                  <h4 className="font-bold text-sm text-[var(--text-color)] line-clamp-1">{acc.name}</h4>
+                  <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">{acc.category?.name || acc.category}</p>
+                  
+                  <div className="mt-auto pt-3 flex items-center justify-between">
+                    <span className="font-bold text-gold font-sans">${acc.discountPrice || acc.price}</span>
+                    <button 
+                      onClick={() => handleAddOutfitItem(acc)}
+                      className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-colors ${
+                        outfitItems.find(item => item.id === (acc.id || acc._id)) 
+                          ? 'bg-gold/20 text-gold border border-gold/40' 
+                          : 'bg-black text-white hover:bg-gold'
+                      }`}
+                    >
+                      {outfitItems.find(item => item.id === (acc.id || acc._id)) ? 'Selected' : 'Add to Outfit'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Size Guide Modal */}
       <AnimatePresence>

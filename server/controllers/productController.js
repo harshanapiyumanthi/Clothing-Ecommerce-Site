@@ -64,7 +64,8 @@ const getProducts = asyncHandler(async (req, res) => {
 const getProductById = asyncHandler(async (req, res) => {
     const product = await Product.findById(req.params.id)
         .populate('category', 'name slug')
-        .populate('reviews.user', 'name');
+        .populate('reviews.user', 'name')
+        .populate('recommendations', 'name price discountPrice images category brand rating sizes colors stock isFeatured isBestSeller');
 
     if (!product) {
         res.status(404);
@@ -77,7 +78,7 @@ const getProductById = asyncHandler(async (req, res) => {
 // @route   POST /api/products
 // @access  Private/Admin
 const createProduct = asyncHandler(async (req, res) => {
-    const { name, description, price, discountPrice, category, brand, sizes, colors, stock, isFeatured, isBestSeller, tags } = req.body;
+    const { name, description, price, discountPrice, category, brand, sizes, colors, stock, isFeatured, isBestSeller, tags, recommendations } = req.body;
 
     let images = [];
     if (req.files && req.files.length > 0) {
@@ -93,6 +94,7 @@ const createProduct = asyncHandler(async (req, res) => {
         colors: colors ? JSON.parse(colors) : [],
         stock, isFeatured, isBestSeller,
         tags: tags ? JSON.parse(tags) : [],
+        recommendations: recommendations ? JSON.parse(recommendations) : [],
         images,
         createdBy: req.user._id,
     });
@@ -110,7 +112,7 @@ const updateProduct = asyncHandler(async (req, res) => {
         throw new Error('Product not found');
     }
 
-    const { name, description, price, discountPrice, category, brand, sizes, colors, stock, isFeatured, isBestSeller, tags } = req.body;
+    const { name, description, price, discountPrice, category, brand, sizes, colors, stock, isFeatured, isBestSeller, tags, recommendations } = req.body;
 
     product.name = name ?? product.name;
     product.description = description ?? product.description;
@@ -124,6 +126,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     if (sizes) product.sizes = JSON.parse(sizes);
     if (colors) product.colors = JSON.parse(colors);
     if (tags) product.tags = JSON.parse(tags);
+    if (recommendations) product.recommendations = JSON.parse(recommendations);
 
     // Handle new image uploads
     if (req.files && req.files.length > 0) {
