@@ -54,6 +54,7 @@ const couponRoutes      = require('./routes/couponRoutes');
 const paymentRoutes     = require('./routes/paymentRoutes');
 const reviewRoutes      = require('./routes/reviewRoutes');
 const customizationRoutes = require('./routes/customizationRoutes');
+const savedDesignRoutes = require('./routes/savedDesignRoutes');
 
 app.get('/', (req, res) => res.json({ message: '🌟 Elegance Fashion API is running' }));
 
@@ -71,6 +72,7 @@ app.use('/api/coupons',         couponRoutes);
 app.use('/api/payments',        paymentRoutes);
 app.use('/api/reviews',         reviewRoutes);
 app.use('/api/customizations',  customizationRoutes);
+app.use('/api/saved-designs',   savedDesignRoutes);
 
 // ─── Error Handlers ──────────────────────────────────────────────────────────
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');

@@ -27,6 +27,9 @@ const productSchema = new mongoose.Schema({
     tags: [{ type: String }],
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     recommendations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+    isPersonalizable: { type: Boolean, default: false },
+    baseProductionTime: { type: Number, default: 2 },
+    allowedCustomizations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'CustomizationOption' }],
 }, { timestamps: true });
 
 // Full-text search index

@@ -21,6 +21,7 @@ const UserProfile = () => {
   const [addresses, setAddresses] = useState([]);
   const [userOrders, setUserOrders] = useState([]);
   const [avatar, setAvatar] = useState(null);
+  const [savedDesigns, setSavedDesigns] = useState([]);
 
   useEffect(() => {
     if (!userInfo) {
@@ -221,6 +222,9 @@ const UserProfile = () => {
               <NavButton id="profile" icon={FiUser} label="Profile & Security" />
               <NavButton id="addresses" icon={FiMapPin} label="Address Book" />
               <NavButton id="orders" icon={FiPackage} label="Order History" />
+              {userInfo?.membershipTier === 'Premium' && (
+                <NavButton id="studio" icon={FiStar} label="Studio Collection" />
+              )}
               <NavButton id="rewards" icon={FiStar} label="Reward Points" />
               <NavButton id="returns" icon={FiRotateCcw} label="Returns" />
               <NavButton id="notifications" icon={FiBell} label="Notifications" />
@@ -231,6 +235,34 @@ const UserProfile = () => {
 
         {/* Content Details */}
         <main className="flex-grow">
+          {activeTab === 'studio' && userInfo?.membershipTier === 'Premium' && (
+            <div className="space-y-6">
+              <div className="bg-[var(--card-bg)] border border-gold/45 p-6 sm:p-8 rounded-2xl space-y-6 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold/20 via-gold to-gold/20"></div>
+                <div className="border-b border-gold/20 pb-3 flex items-center gap-2">
+                  <span className="text-xl">✨</span>
+                  <h2 className="text-lg font-bold uppercase tracking-widest text-gold">
+                    My Studio Collection
+                  </h2>
+                </div>
+                
+                {savedDesigns.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500 text-xs">
+                    <div className="w-16 h-16 bg-gold/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-gold/20">
+                      <FiStar className="text-gold text-2xl" />
+                    </div>
+                    <p>You haven't saved any customized designs yet.</p>
+                    <p className="mt-1">Explore our collections and use the Dream Dress Studio to create your look!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Map saved designs here */}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {activeTab === 'profile' && (
             <div className="space-y-6">
               <div className="bg-white dark:bg-gray-900 border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">

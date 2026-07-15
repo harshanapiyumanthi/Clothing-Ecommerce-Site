@@ -46,7 +46,9 @@ const ProductManager = () => {
     isBestSeller: false,
     tags: '',
     imageUrl: '',
-    recommendations: []
+    recommendations: [],
+    isPersonalizable: false,
+    baseProductionTime: '2'
   });
 
   // Delete State
@@ -89,7 +91,9 @@ const ProductManager = () => {
         isBestSeller: product.isBestSeller || false,
         tags: product.tags ? product.tags.join(', ') : '',
         imageUrl: product.images?.[0]?.url || '',
-        recommendations: product.recommendations || []
+        recommendations: product.recommendations || [],
+        isPersonalizable: product.isPersonalizable || false,
+        baseProductionTime: product.baseProductionTime || '2'
       });
     } else {
       setEditingProduct(null);
@@ -107,7 +111,9 @@ const ProductManager = () => {
         isBestSeller: false,
         tags: '',
         imageUrl: '',
-        recommendations: []
+        recommendations: [],
+        isPersonalizable: false,
+        baseProductionTime: '2'
       });
     }
     setShowModal(true);
@@ -173,6 +179,8 @@ const ProductManager = () => {
         stock: parseInt(formData.stock),
         isFeatured: formData.isFeatured,
         isBestSeller: formData.isBestSeller,
+        isPersonalizable: formData.isPersonalizable,
+        baseProductionTime: parseInt(formData.baseProductionTime),
         tags: tagsArray,
         recommendations: formData.recommendations,
         images: [{ url: formData.imageUrl || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=600' }]
@@ -675,29 +683,61 @@ const ProductManager = () => {
                 />
               </div>
 
-              {/* Feature checkboxes */}
-              <div className="flex items-center gap-6">
-                <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="isFeatured"
-                    checked={formData.isFeatured}
-                    onChange={handleInputChange}
-                    className="accent-gold h-4 w-4"
-                  />
-                  Featured Product
-                </label>
-                
-                <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="isBestSeller"
-                    checked={formData.isBestSeller}
-                    onChange={handleInputChange}
-                    className="accent-gold h-4 w-4"
-                  />
-                  Best Seller
-                </label>
+              {/* Feature checkboxes & Dream Dress Studio */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-[var(--border-color)] mt-4">
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500">Display Options</h4>
+                  <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="isFeatured"
+                      checked={formData.isFeatured}
+                      onChange={handleInputChange}
+                      className="accent-gold h-4 w-4"
+                    />
+                    Featured Product
+                  </label>
+                  
+                  <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="isBestSeller"
+                      checked={formData.isBestSeller}
+                      onChange={handleInputChange}
+                      className="accent-gold h-4 w-4"
+                    />
+                    Best Seller
+                  </label>
+                </div>
+
+                <div className="space-y-4 bg-gold/5 p-4 rounded-lg border border-gold/20">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gold flex items-center gap-2">
+                    ✨ Dream Dress Studio
+                  </h4>
+                  <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="isPersonalizable"
+                      checked={formData.isPersonalizable}
+                      onChange={handleInputChange}
+                      className="accent-gold h-4 w-4"
+                    />
+                    Enable Personalization
+                  </label>
+
+                  {formData.isPersonalizable && (
+                    <div className="space-y-1 pt-2">
+                      <label className="text-[10px] font-bold uppercase text-gray-500">Base Production Time (Days)</label>
+                      <input
+                        type="number"
+                        name="baseProductionTime"
+                        value={formData.baseProductionTime}
+                        onChange={handleInputChange}
+                        className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-white dark:bg-gray-800 rounded outline-none focus:border-gold text-xs"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Submit Buttons */}

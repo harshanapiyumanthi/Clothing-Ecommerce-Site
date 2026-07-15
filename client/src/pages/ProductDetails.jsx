@@ -20,36 +20,43 @@ const ProductDetails = () => {
   const [selectedSize, setSelectedSize] = useState('M');
   const [selectedColor, setSelectedColor] = useState('');
   
-  // Customization state
-  const [showCustomizer, setShowCustomizer] = useState(false);
-  const [fabric, setFabric] = useState('Georgette Silk');
-  const [customColor, setCustomColor] = useState('');
-  const [pattern, setPattern] = useState('Solid');
-  const [neckDesign, setNeckDesign] = useState('Boat Neck');
-  const [sleeveDesign, setSleeveDesign] = useState('Short Sleeves');
-  const [dressLength, setDressLength] = useState('Midi');
-  const [fit, setFit] = useState('Regular Fit');
-  const [buttons, setButtons] = useState('None');
-  const [useCustomMeasurements, setUseCustomMeasurements] = useState(false);
+  // Dream Dress Studio state
+  const [showStudio, setShowStudio] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
-  // Custom measurements
-  const [bust, setBust] = useState('');
-  const [waist, setWaist] = useState('');
-  const [hip, setHip] = useState('');
-  const [shoulder, setShoulder] = useState('');
-  const [neckSize, setNeckSize] = useState('');
-  const [sleeveLength, setSleeveLength] = useState('');
-  const [armHole, setArmHole] = useState('');
-  const [dressLengthCustom, setDressLengthCustom] = useState('');
-  const [height, setHeight] = useState('');
-  const [weight, setWeight] = useState('');
-  
-  // Upload references
-  const [referenceImageUrl, setReferenceImageUrl] = useState('');
-  const [inspirationUrl, setInspirationUrl] = useState('');
-  const [sketchUrl, setSketchUrl] = useState('');
-  const [pinterestUrl, setPinterestUrl] = useState('');
-  const [specialInstructions, setSpecialInstructions] = useState('');
+  const availableStudioOptions = {
+    fabric: [
+      { name: 'Standard Cotton', price: 0 },
+      { name: 'Premium Linen', price: 15 },
+      { name: 'Georgette Silk', price: 30 },
+      { name: 'Silk Velvet', price: 45 }
+    ],
+    sleeve: [
+      { name: 'Standard', price: 0 },
+      { name: 'Sleeveless', price: 0 },
+      { name: 'Puff Sleeves', price: 10 },
+      { name: 'Long Elegant', price: 15 }
+    ],
+    neckline: [
+      { name: 'Standard', price: 0 },
+      { name: 'V-Neck', price: 0 },
+      { name: 'Sweetheart', price: 15 },
+      { name: 'Off-shoulder', price: 20 }
+    ],
+    decorations: [
+      { name: 'None', price: 0 },
+      { name: 'Pearl Embroidery', price: 40 },
+      { name: 'Lace Trim', price: 25 },
+      { name: 'Crystal Sequence', price: 60 }
+    ]
+  };
+
+  const [studioSelections, setStudioSelections] = useState({
+    fabric: availableStudioOptions.fabric[0],
+    sleeve: availableStudioOptions.sleeve[0],
+    neckline: availableStudioOptions.neckline[0],
+    decorations: availableStudioOptions.decorations[0]
+  });
   
   const [showSizeGuideModal, setShowSizeGuideModal] = useState(false);
 
@@ -221,22 +228,36 @@ const ProductDetails = () => {
 
   const getCustomSurcharge = () => {
     let extra = 0;
-    if (fabric === 'Silk Velvet') extra += 40;
-    else if (fabric === 'Georgette Silk') extra += 20;
-    else if (fabric === 'Merino Wool') extra += 30;
-    else if (fabric === 'Premium Cotton') extra += 10;
-    else if (fabric === 'Heavy Duty Linen') extra += 15;
-
-    if (sleeveDesign === 'Puff Sleeves') extra += 10;
-    else if (sleeveDesign === 'Long Sleeves') extra += 15;
-    else if (sleeveDesign === 'Three-Quarter') extra += 10;
-
-    if (buttons === 'Pearl Buttons') extra += 15;
-    else if (buttons === 'Metallic Buttons') extra += 10;
-    else if (buttons === 'Wooden Buttons') extra += 5;
-
-    if (useCustomMeasurements) extra += 30;
+    if (showStudio) {
+      extra += studioSelections.fabric.price;
+      extra += studioSelections.sleeve.price;
+      extra += studioSelections.neckline.price;
+      extra += studioSelections.decorations.price;
+    }
     return extra;
+  };
+
+  const handleSaveDesign = async () => {
+    if (!userInfo || userInfo.membershipTier !== 'Premium') return;
+    try {
+      const customizations = [
+        { optionType: 'Fabric', optionValue: studioSelections.fabric.name },
+        { optionType: 'Sleeve', optionValue: studioSelections.sleeve.name },
+        { optionType: 'Neckline', optionValue: studioSelections.neckline.name },
+        { optionType: 'Decoration', optionValue: studioSelections.decorations.name },
+      ];
+      const payload = {
+        productId: product.id || product._id,
+        customizations,
+        totalPrice: product.price + getCustomSurcharge(),
+        productionTime: (product.baseProductionTime || 2) + 7,
+      };
+      const headers = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      await axios.post('http://localhost:5000/api/saved-designs', payload, headers);
+      toast.success('Design saved to your Dream Dress Studio Collection!');
+    } catch (err) {
+      toast.error('Failed to save design. Please try again.');
+    }
   };
 
   const handleAddMainToCart = () => {
@@ -247,47 +268,17 @@ const ProductDetails = () => {
       return;
     }
 
-    // If user selected custom measurements, validate them
-    if (showCustomizer && useCustomMeasurements) {
-      if (!bust || !waist || !hip || !shoulder || !neckSize || !sleeveLength || !armHole || !dressLengthCustom || !height || !weight) {
-        toast.warning('Please fill in all custom measurements.');
-        return;
-      }
-    }
-
-    const isCustom = showCustomizer;
+    const isCustom = showStudio;
     const finalPrice = isCustom ? product.price + getCustomSurcharge() : product.price;
     const itemId = isCustom ? `${product.id}-custom-${Date.now()}` : product.id;
 
     const customizationData = isCustom ? {
-      fabric,
-      color: customColor || selectedColor,
-      pattern,
-      neckDesign,
-      sleeveDesign,
-      dressLength,
-      fit,
-      buttons,
-      sizeType: useCustomMeasurements ? 'Custom' : 'Standard',
-      standardSize: useCustomMeasurements ? null : selectedSize,
-      measurements: useCustomMeasurements ? { 
-        bust, 
-        waist, 
-        hip, 
-        shoulder, 
-        neck: neckSize, 
-        sleeveLength, 
-        armHole, 
-        dressLength: dressLengthCustom, 
-        height, 
-        weight 
-      } : null,
-      referenceImageUrl,
-      inspirationUrl,
-      sketchUrl,
-      pinterestUrl,
-      specialInstructions,
-      productionTime: '5 weeks'
+      fabric: studioSelections.fabric.name,
+      sleeve: studioSelections.sleeve.name,
+      neckline: studioSelections.neckline.name,
+      decorations: studioSelections.decorations.name,
+      standardSize: selectedSize,
+      productionTime: `${(product.baseProductionTime || 2) + 7} Days`
     } : null;
 
     dispatch(addToCart({
@@ -547,339 +538,201 @@ const ProductDetails = () => {
               Buy Now
             </button>
 
-            {product.category !== 'Accessories' && (
+            {product.isPersonalizable && (
               <button 
                 type="button"
-                onClick={() => setShowCustomizer(!showCustomizer)}
-                className={`flex-grow h-12 border uppercase tracking-wider font-bold text-xs transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer ${showCustomizer ? 'bg-black border-black text-white' : 'border-gold text-gold hover:bg-gold/10'}`}
+                onClick={() => {
+                  if (userInfo?.membershipTier === 'Premium') {
+                    setShowStudio(!showStudio);
+                  } else {
+                    setShowUpgradeModal(true);
+                  }
+                }}
+                className={`flex-grow h-12 border uppercase tracking-wider font-bold text-xs transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer ${showStudio ? 'bg-black border-black text-white' : 'bg-gold/10 border-gold text-gold hover:bg-gold hover:text-white shadow-md'}`}
               >
-                <FiSliders /> {showCustomizer ? 'Cancel Customization' : 'Customize This Dress'}
+                <span className="text-sm">✨</span> 
+                {showStudio ? 'Cancel Personalization' : 'Personalize This Design'}
               </button>
             )}
           </div>
 
-          {/* Customizer Panel */}
+          {/* Dream Dress Studio Panel */}
           <AnimatePresence>
-            {showCustomizer && (
+            {showStudio && (
               <motion.div 
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden border border-gold/45 bg-gold/5 p-5 rounded-lg space-y-4 pt-4 mt-2"
+                className="overflow-hidden border border-gold/45 bg-[var(--card-bg)] shadow-lg p-6 rounded-lg space-y-6 mt-4 relative"
               >
-                <div className="flex items-center gap-2 border-b border-gold/20 pb-2">
-                  <FiSliders className="text-gold" />
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-gold">Tailoring & Custom Specs</h4>
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold/20 via-gold to-gold/20"></div>
+                
+                <div className="flex items-center justify-between border-b border-gold/20 pb-4">
+                  <div>
+                    <h4 className="font-bold text-lg uppercase tracking-widest text-gold flex items-center gap-2">
+                      ✨ Dream Dress Studio
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-1">Personalize our designer collections to match your unique style.</p>
+                  </div>
+                  <button 
+                    onClick={handleSaveDesign}
+                    className="px-4 py-2 bg-black text-white text-[10px] font-bold uppercase tracking-wider rounded hover:bg-gold transition-colors"
+                  >
+                    Save Design
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Fabric */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-500">Fabric Option</label>
-                    <select
-                      value={fabric}
-                      onChange={(e) => setFabric(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
-                    >
-                      <option value="Georgette Silk">Georgette Silk (+$20)</option>
-                      <option value="Heavy Duty Linen">Heavy Duty Linen (+$15)</option>
-                      <option value="Premium Cotton">Premium Cotton (+$10)</option>
-                      <option value="Silk Velvet">Silk Velvet (+$40)</option>
-                      <option value="Merino Wool">Merino Wool (+$30)</option>
-                    </select>
-                  </div>
-
-                  {/* Pattern */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-500">Pattern Option</label>
-                    <select
-                      value={pattern}
-                      onChange={(e) => setPattern(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
-                    >
-                      <option value="Solid">Solid (+$0)</option>
-                      <option value="Floral">Floral (+$15)</option>
-                      <option value="Stripes">Stripes (+$10)</option>
-                      <option value="Polka Dots">Polka Dots (+$10)</option>
-                      <option value="Plaid">Plaid (+$15)</option>
-                    </select>
-                  </div>
-
-                  {/* Custom color input */}
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="text-[10px] font-bold uppercase text-gray-500">Color Selection</label>
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {['#0f172a', '#b45309', '#be123c', '#000000', '#ffffff', '#f5f5dc', '#10b981', '#ef4444'].map((col, idx) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {/* Fabric Option */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">Fabric Selection</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {availableStudioOptions.fabric.map(opt => (
                         <button
-                          key={idx}
+                          key={opt.name}
                           type="button"
-                          onClick={() => {
-                            setSelectedColor(col);
-                            setCustomColor('');
-                          }}
-                          style={{ backgroundColor: col }}
-                          className={`w-6 h-6 rounded-full border-2 cursor-pointer transition-transform hover:scale-110 ${selectedColor === col && !customColor ? 'border-gold scale-105' : 'border-transparent'}`}
-                        />
+                          onClick={() => setStudioSelections(prev => ({ ...prev, fabric: opt }))}
+                          className={`p-2 border rounded text-xs text-left transition-all ${studioSelections.fabric.name === opt.name ? 'border-gold bg-gold/10 font-bold text-gold' : 'border-[var(--border-color)] hover:border-gold/50'}`}
+                        >
+                          {opt.name} {opt.price > 0 && <span className="text-[10px] opacity-70 ml-1">(+${opt.price})</span>}
+                        </button>
                       ))}
                     </div>
-                    <input
-                      type="text"
-                      placeholder="Or specify custom color name..."
-                      value={customColor}
-                      onChange={(e) => setCustomColor(e.target.value)}
-                      className="w-full px-2.5 py-1.5 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold"
-                    />
                   </div>
 
-                  {/* Neck design */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-500">Neckline Design</label>
-                    <select
-                      value={neckDesign}
-                      onChange={(e) => setNeckDesign(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
-                    >
-                      <option value="Boat Neck">Boat Neck</option>
-                      <option value="Sweetheart">Sweetheart</option>
-                      <option value="V-Neck">V-Neck</option>
-                      <option value="Crew Neck">Crew Neck</option>
-                      <option value="Halter Neck">Halter Neck</option>
-                      <option value="Off-shoulder">Off-shoulder</option>
-                    </select>
-                  </div>
-
-                  {/* Sleeve design */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-500">Sleeve Option</label>
-                    <select
-                      value={sleeveDesign}
-                      onChange={(e) => setSleeveDesign(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
-                    >
-                      <option value="Short Sleeves">Short Sleeves (+$0)</option>
-                      <option value="Sleeveless">Sleeveless (+$0)</option>
-                      <option value="Puff Sleeves">Puff Sleeves (+$10)</option>
-                      <option value="Three-Quarter">Three-Quarter (+$10)</option>
-                      <option value="Long Sleeves">Long Sleeves (+$15)</option>
-                      <option value="Bell Sleeves">Bell Sleeves (+$15)</option>
-                    </select>
-                  </div>
-
-                  {/* Length */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-500">Dress Length</label>
-                    <select
-                      value={dressLength}
-                      onChange={(e) => setDressLength(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
-                    >
-                      <option value="Midi">Midi</option>
-                      <option value="Mini">Mini</option>
-                      <option value="Knee Length">Knee Length</option>
-                      <option value="Maxi">Maxi</option>
-                      <option value="Floor Length">Floor Length</option>
-                    </select>
-                  </div>
-
-                  {/* Fit */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-500">Posture & Fit</label>
-                    <select
-                      value={fit}
-                      onChange={(e) => setFit(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
-                    >
-                      <option value="Regular Fit">Regular Fit</option>
-                      <option value="Slim Fit">Slim Fit</option>
-                      <option value="Loose Fit">Loose Fit</option>
-                    </select>
-                  </div>
-
-                  {/* Buttons */}
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="text-[10px] font-bold uppercase text-gray-500">Buttons Selection</label>
-                    <select
-                      value={buttons}
-                      onChange={(e) => setButtons(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
-                    >
-                      <option value="None">None (+$0)</option>
-                      <option value="Pearl Buttons">Pearl Buttons (+$15)</option>
-                      <option value="Metallic Buttons">Metallic Buttons (+$10)</option>
-                      <option value="Wooden Buttons">Wooden Buttons (+$5)</option>
-                      <option value="Fabric Buttons">Fabric Buttons (+$10)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Sizing selection */}
-                <div className="space-y-3 pt-4 border-t border-gold/15">
-                  <div className="flex flex-wrap items-center gap-4">
-                    <label className="text-xs font-bold uppercase text-gray-500">Sizing Type</label>
-                    <div className="flex gap-2">
-                      <button
-                        key="standard"
-                        type="button"
-                        onClick={() => setUseCustomMeasurements(false)}
-                        className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${!useCustomMeasurements ? 'bg-gold text-white shadow' : 'border border-gold/40 text-gold hover:bg-gold/10'}`}
-                      >
-                        Standard Size
-                      </button>
-                      <button
-                        key="custom"
-                        type="button"
-                        onClick={() => setUseCustomMeasurements(true)}
-                        className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${useCustomMeasurements ? 'bg-gold text-white shadow' : 'border border-gold/40 text-gold hover:bg-gold/10'}`}
-                      >
-                        Custom Measurements (+$30)
-                      </button>
+                  {/* Sleeve Option */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">Sleeve Style</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {availableStudioOptions.sleeve.map(opt => (
+                        <button
+                          key={opt.name}
+                          type="button"
+                          onClick={() => setStudioSelections(prev => ({ ...prev, sleeve: opt }))}
+                          className={`p-2 border rounded text-xs text-left transition-all ${studioSelections.sleeve.name === opt.name ? 'border-gold bg-gold/10 font-bold text-gold' : 'border-[var(--border-color)] hover:border-gold/50'}`}
+                        >
+                          {opt.name} {opt.price > 0 && <span className="text-[10px] opacity-70 ml-1">(+${opt.price})</span>}
+                        </button>
+                      ))}
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowSizeGuideModal(true)}
-                      className="text-[10px] text-gold underline cursor-pointer hover:text-black font-bold uppercase tracking-wider ml-auto"
-                    >
-                      Size Guide
-                    </button>
                   </div>
 
-                  {!useCustomMeasurements ? (
-                    <div className="flex items-center gap-2 pt-1.5">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase">Standard Size:</span>
-                      <div className="flex flex-wrap gap-2">
-                        {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(sz => (
-                          <button
-                            key={sz}
-                            type="button"
-                            onClick={() => setSelectedSize(sz)}
-                            className={`w-8 h-8 text-xs font-bold border transition-colors ${selectedSize === sz ? 'bg-gold border-gold text-white' : 'border-[var(--border-color)] text-gray-600 hover:border-gold'}`}
-                          >
-                            {sz}
-                          </button>
-                        ))}
-                      </div>
+                  {/* Neckline Option */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">Neckline Design</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {availableStudioOptions.neckline.map(opt => (
+                        <button
+                          key={opt.name}
+                          type="button"
+                          onClick={() => setStudioSelections(prev => ({ ...prev, neckline: opt }))}
+                          className={`p-2 border rounded text-xs text-left transition-all ${studioSelections.neckline.name === opt.name ? 'border-gold bg-gold/10 font-bold text-gold' : 'border-[var(--border-color)] hover:border-gold/50'}`}
+                        >
+                          {opt.name} {opt.price > 0 && <span className="text-[10px] opacity-70 ml-1">(+${opt.price})</span>}
+                        </button>
+                      ))}
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gold/5 p-4 rounded border border-gold/15">
-                      <div className="space-y-0.5">
-                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Bust (in)</label>
-                        <input type="number" placeholder="e.g. 34" value={bust} onChange={e => setBust(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Waist (in)</label>
-                        <input type="number" placeholder="e.g. 28" value={waist} onChange={e => setWaist(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Hip (in)</label>
-                        <input type="number" placeholder="e.g. 36" value={hip} onChange={e => setHip(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Shoulder (in)</label>
-                        <input type="number" placeholder="e.g. 15" value={shoulder} onChange={e => setShoulder(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Neck Size (in)</label>
-                        <input type="number" placeholder="e.g. 13" value={neckSize} onChange={e => setNeckSize(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Sleeve Length (in)</label>
-                        <input type="number" placeholder="e.g. 22" value={sleeveLength} onChange={e => setSleeveLength(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Arm Hole (in)</label>
-                        <input type="number" placeholder="e.g. 16" value={armHole} onChange={e => setArmHole(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Dress Length (in)</label>
-                        <input type="number" placeholder="e.g. 40" value={dressLengthCustom} onChange={e => setDressLengthCustom(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Height (in)</label>
-                        <input type="number" placeholder="e.g. 64" value={height} onChange={e => setHeight(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
-                      </div>
-                      <div className="space-y-0.5 sm:col-span-3">
-                        <label className="text-[9px] font-semibold text-gray-500 uppercase">Weight (lbs)</label>
-                        <input type="number" placeholder="e.g. 130" value={weight} onChange={e => setWeight(e.target.value)} className="w-full p-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs text-center font-sans" />
-                      </div>
+                  </div>
+
+                  {/* Decorations Option */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">Decorations</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {availableStudioOptions.decorations.map(opt => (
+                        <button
+                          key={opt.name}
+                          type="button"
+                          onClick={() => setStudioSelections(prev => ({ ...prev, decorations: opt }))}
+                          className={`p-2 border rounded text-xs text-left transition-all ${studioSelections.decorations.name === opt.name ? 'border-gold bg-gold/10 font-bold text-gold' : 'border-[var(--border-color)] hover:border-gold/50'}`}
+                        >
+                          {opt.name} {opt.price > 0 && <span className="text-[10px] opacity-70 ml-1">(+${opt.price})</span>}
+                        </button>
+                      ))}
                     </div>
-                  )}
-                </div>
-
-                {/* References */}
-                <div className="space-y-2 pt-2 border-t border-gold/15">
-                  <h5 className="text-[10px] font-bold uppercase text-gray-500">Design References & Uploads</h5>
-                  <div className="grid grid-cols-1 gap-2.5">
-                    <input
-                      type="url"
-                      placeholder="Pinterest Reference Link URL"
-                      value={pinterestUrl}
-                      onChange={e => setPinterestUrl(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold"
-                    />
-                    <input
-                      type="url"
-                      placeholder="Reference Image URL"
-                      value={referenceImageUrl}
-                      onChange={e => setReferenceImageUrl(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold"
-                    />
-                    <input
-                      type="url"
-                      placeholder="Sketch Image Link URL"
-                      value={sketchUrl}
-                      onChange={e => setSketchUrl(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold"
-                    />
-                    <input
-                      type="url"
-                      placeholder="Design Inspiration Reference URL"
-                      value={inspirationUrl}
-                      onChange={e => setInspirationUrl(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold"
-                    />
                   </div>
                 </div>
 
-                {/* Instructions */}
-                <div className="space-y-1 pt-1.5">
-                  <label className="text-[10px] font-bold uppercase text-gray-500">Special Instructions</label>
-                  <textarea
-                    rows="2.5"
-                    placeholder="Specify styling details, pocket details, or fabric preferences..."
-                    value={specialInstructions}
-                    onChange={e => setSpecialInstructions(e.target.value)}
-                    className="w-full px-2.5 py-1.5 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold resize-none"
-                  />
-                </div>
-
-                {/* Estimates */}
-                <div className="pt-3 border-t border-gold/15 flex flex-col gap-1.5 text-xs text-gray-600 font-semibold bg-gold/5 p-3 rounded">
-                  <div className="flex justify-between">
-                    <span>Base Garment Price:</span>
-                    <span className="font-sans text-gray-800 dark:text-white">${product.price}</span>
+                {/* Real-time Estimates */}
+                <div className="pt-4 border-t border-gold/15 flex flex-col gap-2 text-xs text-gray-600 font-semibold bg-gold/5 p-4 rounded mt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="uppercase tracking-widest text-[10px] text-gray-500">Base Designer Price:</span>
+                    <span className="font-sans text-gray-800 dark:text-gray-300 text-sm">${product.price.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-gold">
-                    <span>Customization Surcharge:</span>
-                    <span className="font-sans">+${getCustomSurcharge()}</span>
+                  <div className="flex justify-between items-center text-gold">
+                    <span className="uppercase tracking-widest text-[10px]">Studio Surcharge:</span>
+                    <span className="font-sans">+${getCustomSurcharge().toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between border-t border-gold/20 pt-1.5 font-bold text-[var(--text-color)] text-sm">
-                    <span>Live Estimated Price:</span>
-                    <span className="font-sans text-gold">${product.price + getCustomSurcharge()}</span>
+                  <div className="flex justify-between items-center border-t border-gold/20 pt-2 font-bold text-[var(--text-color)] text-lg">
+                    <span className="uppercase tracking-widest text-[10px]">Total Studio Price:</span>
+                    <span className="font-sans text-gold">${(product.price + getCustomSurcharge()).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-[10px] text-gray-400 font-mono mt-1 border-t border-dashed border-[var(--border-color)] pt-1.5">
-                    <span>Lead Time:</span>
-                    <span>5 Weeks</span>
+                  <div className="flex justify-between text-[10px] text-gray-400 font-mono mt-2 border-t border-dashed border-[var(--border-color)] pt-2 uppercase tracking-widest">
+                    <span>Estimated Production:</span>
+                    <span>{(product.baseProductionTime || 2) + 7} Days</span>
                   </div>
-                </div>
-
-                {/* Handcrafted Warning Message */}
-                <div className="flex gap-1.5 bg-gold/10 text-gold p-3 rounded text-[10px] items-start border border-gold/25 leading-relaxed font-semibold">
-                  <FiInfo size={14} className="shrink-0 mt-0.5" />
-                  <span>This customized garment is handcrafted and requires approximately five weeks for production. Custom pieces cannot be returned or refunded.</span>
                 </div>
 
               </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Premium Membership Upgrade Modal */}
+          <AnimatePresence>
+            {showUpgradeModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                <motion.div 
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  className="bg-[var(--card-bg)] border border-gold/30 rounded-2xl w-full max-w-lg shadow-2xl relative overflow-hidden"
+                >
+                  <div className="bg-black text-center py-8 relative">
+                    <button 
+                      onClick={() => setShowUpgradeModal(false)}
+                      className="absolute top-4 right-4 text-gray-400 hover:text-white p-1"
+                    >
+                      <FiX size={20} />
+                    </button>
+                    <h3 className="text-2xl font-bold uppercase tracking-widest text-gold font-sans mb-2">Unlock Dream Dress Studio</h3>
+                    <p className="text-xs text-gray-300 px-8">Personalize our designer collections to perfection with exclusive access.</p>
+                  </div>
+                  
+                  <div className="p-8 space-y-6">
+                    <ul className="space-y-4">
+                      {[
+                        'Personalize our original designer collections',
+                        'Access exclusive premium fabrics and silks',
+                        'Unlock luxury color palettes and decorations',
+                        'Save your personalized designs for later',
+                        'Priority production and tailoring (Skip the line)',
+                        'Early access to new seasonal collections'
+                      ].map((benefit, i) => (
+                        <li key={i} className="flex items-start gap-3 text-sm text-[var(--text-color)]">
+                          <div className="bg-gold/20 text-gold p-1 rounded-full shrink-0">
+                            <FiCheck size={14} />
+                          </div>
+                          <span className="leading-tight pt-0.5">{benefit}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="pt-4 border-t border-[var(--border-color)] text-center">
+                      <Link 
+                        to="/membership" 
+                        className="inline-block w-full py-3.5 bg-gold text-white font-bold uppercase tracking-widest text-xs rounded hover:bg-black transition-colors shadow-lg"
+                      >
+                        Upgrade to Premium Now
+                      </Link>
+                      <button 
+                        onClick={() => setShowUpgradeModal(false)}
+                        className="mt-4 text-xs text-gray-400 hover:text-gold uppercase tracking-wider font-bold"
+                      >
+                        Continue as Standard Guest
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
             )}
           </AnimatePresence>
 
