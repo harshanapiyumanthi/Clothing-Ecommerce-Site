@@ -3,6 +3,17 @@ import { FiSearch, FiLayers, FiHeart, FiPlus, FiTrash2, FiBox, FiCheck } from 'r
 import { adminApi } from '../../utils/adminApi';
 import { toast } from 'react-toastify';
 
+const isAccessory = (p) => {
+  if (!p) return false;
+  if (typeof p.category === 'string') {
+    return p.category.toLowerCase() === 'accessories';
+  }
+  if (p.category && typeof p.category === 'object') {
+    return p.category.name?.toLowerCase() === 'accessories';
+  }
+  return false;
+};
+
 const RecommendationManager = () => {
   const [products, setProducts] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
@@ -22,7 +33,7 @@ const RecommendationManager = () => {
       setRecommendations(recData);
       if (prodData.length > 0) {
         // Set first clothing item as default selected
-        const clothingItem = prodData.find(p => p.category !== 'Accessories');
+        const clothingItem = prodData.find(p => !isAccessory(p));
         setSelectedProductId(clothingItem?.id || prodData[0].id);
       }
     } catch (err) {
@@ -46,7 +57,7 @@ const RecommendationManager = () => {
     // Only return products belonging to 'Accessories' category that aren't already assigned
     const assignedIds = recommendations.find(r => r.productId === selectedProductId)?.assignedProducts || [];
     return products.filter(p => 
-      p.category === 'Accessories' && 
+      isAccessory(p) && 
       !assignedIds.includes(p.id) &&
       p.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -108,8 +119,8 @@ const RecommendationManager = () => {
           onChange={(e) => setSelectedProductId(e.target.value)}
           className="w-full max-w-md px-3 py-2.5 border border-[var(--border-color)] bg-transparent rounded-lg outline-none focus:border-gold text-sm cursor-pointer"
         >
-          {products.filter(p => p.category !== 'Accessories').map(prod => (
-            <option key={prod.id} value={prod.id}>{prod.name} ({prod.category})</option>
+          {products.filter(p => !isAccessory(p)).map(prod => (
+            <option key={prod.id} value={prod.id}>{prod.name} ({typeof prod.category === 'object' ? prod.category.name : prod.category})</option>
           ))}
         </select>
       </div>

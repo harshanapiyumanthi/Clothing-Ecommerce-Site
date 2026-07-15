@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiHeart, FiMinus, FiPlus, FiStar, FiSliders, FiInfo, FiCheck, FiX, FiShoppingBag } from 'react-icons/fi';
+import { FiHeart, FiMinus, FiPlus, FiStar, FiSliders, FiInfo, FiCheck, FiX, FiShoppingBag, FiArrowRight, FiEye } from 'react-icons/fi';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../redux/slices/cartSlice';
 import { toast } from 'react-toastify';
 import Breadcrumb from '../components/Breadcrumb';
+import axios from 'axios';
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -55,7 +56,8 @@ const ProductDetails = () => {
   // Complete The Look popup state
   const [showLookModal, setShowLookModal] = useState(false);
   const [accessories, setAccessories] = useState([]);
-  const [selectedAccessories, setSelectedAccessories] = useState([]);
+  const [addedAccessories, setAddedAccessories] = useState([]);
+  const [skippedAccessories, setSkippedAccessories] = useState([]);
 
   // Reviews & ratings state
   const [reviewsList, setReviewsList] = useState([]);
@@ -66,93 +68,164 @@ const ProductDetails = () => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [recentlyViewedList, setRecentlyViewedList] = useState([]);
+  const [frequentlyBought, setFrequentlyBought] = useState([]);
+  const [alsoBought, setAlsoBought] = useState([]);
 
-  useEffect(() => {
-    // Fetch products
-    const productsList = JSON.parse(localStorage.getItem('admin_products') || '[]');
-    // Try matching param ID
-    let found = productsList.find(p => p.id.toString() === id.toString());
-    if (!found) {
-      // Fallback to prod-1 or mock product details
-      found = productsList[0] || {
-        id: 'prod-1',
-        name: 'Silk Evening Gown',
-        price: 299,
-        description: 'An exquisite silk evening gown designed for elegance and comfort. Features a flowing silhouette and delicate detailing.',
-        rating: 4.8,
-        reviews: 124,
-        category: 'Women',
-        stock: 5,
-        sizes: ['S', 'M', 'L', 'XL'],
-        colors: ['#0f172a', '#b45309', '#be123c'],
-        images: [{ url: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?q=80&w=2071&auto=format&fit=crop' }]
-      };
+  const trackBackendInteraction = async (prodId, type) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null');
+      if (userInfo && userInfo.token) {
+        await axios.post('http://localhost:5000/api/recommendations/track', {
+          productId: prodId,
+          type
+        }, {
+          headers: { Authorization: `Bearer ${userInfo.token}` }
+        });
+      }
+    } catch (err) {
+      // track interaction errors silently
     }
-    setProduct(found);
-    if (found.colors?.length > 0) {
-      setSelectedColor(found.colors[0]);
-    }
-
-    // Log to recently viewed
-    if (found && found.id) {
-      let rv = JSON.parse(localStorage.getItem('recently_viewed') || '[]');
-      rv = rv.filter(item => item.toString() !== found.id.toString());
-      rv.unshift(found.id);
-      localStorage.setItem('recently_viewed', JSON.stringify(rv.slice(0, 8)));
-    }
-
-    // Load reviews
-    const savedReviews = JSON.parse(localStorage.getItem(`product_reviews_${found.id}`) || '[]');
-    setReviewsList(savedReviews);
-
-    // Load related products
-    const related = productsList
-      .filter(p => p.category === found.category && p.id.toString() !== found.id.toString())
-      .slice(0, 4);
-    setRelatedProducts(related);
-
-    // Load recently viewed products
-    const rvIds = JSON.parse(localStorage.getItem('recently_viewed') || '[]');
-    const rvMatched = rvIds
-      .filter(x => x.toString() !== found.id.toString())
-      .map(rid => productsList.find(p => p.id.toString() === rid.toString()))
-      .filter(Boolean)
-      .slice(0, 4);
-    setRecentlyViewedList(rvMatched);
-
-    setActiveImageIndex(0);
-    setLoading(false);
-  }, [id]);
-
-  // Load accessory recommendations when modal opens
-  const loadRecommendations = () => {
-    const recs = JSON.parse(localStorage.getItem('admin_recommendations') || '[]');
-    const products = JSON.parse(localStorage.getItem('admin_products') || '[]');
-    
-    // Find recommendations assigned to this product
-    const prodRec = recs.find(r => r.productId === product.id);
-    let matchedAccs = [];
-    if (prodRec && prodRec.assignedProducts?.length > 0) {
-      matchedAccs = products.filter(p => prodRec.assignedProducts.includes(p.id));
-    } else {
-      // Fallback: load any accessories in the category
-      matchedAccs = products.filter(p => p.category === 'Accessories').slice(0, 3);
-    }
-    setAccessories(matchedAccs);
   };
 
-  const handleAddMainToCart = () => {
-    // If user selected custom measurements, validate them
-    if (showCustomizer && useCustomMeasurements) {
-      if (!bust || !waist || !hip || !shoulder || !sleeve || !length) {
-        toast.warning('Please fill in all custom measurements.');
-        return;
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      const productsList = JSON.parse(localStorage.getItem('admin_products') || '[]');
+      let found = productsList.find(p => p.id.toString() === id.toString());
+      if (!found) {
+        try {
+          const response = await axios.get(`http://localhost:5000/api/products/${id}`);
+          if (response.data && response.data.success) {
+            found = response.data.product;
+          }
+        } catch (err) {
+          console.warn('Failed to fetch product from server', err.message);
+        }
       }
-    }
+      if (!found) {
+        found = productsList[0] || {
+          id: 'prod-1',
+          name: 'Silk Evening Gown',
+          price: 299,
+          description: 'An exquisite silk evening gown designed for elegance and comfort. Features a flowing silhouette and delicate detailing.',
+          rating: 4.8,
+          reviews: 124,
+          category: 'Women',
+          stock: 5,
+          sizes: ['S', 'M', 'L', 'XL'],
+          colors: ['#0f172a', '#b45309', '#be123c'],
+          images: [{ url: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?q=80&w=2071&auto=format&fit=crop' }]
+        };
+      }
+      setProduct(found);
+      if (found.colors?.length > 0) {
+        setSelectedColor(found.colors[0]);
+      }
 
-    // Trigger Recommendation Popup
-    loadRecommendations();
-    setShowLookModal(true);
+      // Track view interaction on backend
+      trackBackendInteraction(found.id, 'view');
+
+      // Log to recently viewed
+      if (found && found.id) {
+        let rv = JSON.parse(localStorage.getItem('recently_viewed') || '[]');
+        rv = rv.filter(item => item.toString() !== found.id.toString());
+        rv.unshift(found.id);
+        localStorage.setItem('recently_viewed', JSON.stringify(rv.slice(0, 8)));
+      }
+
+      // Load reviews
+      const savedReviews = JSON.parse(localStorage.getItem(`product_reviews_${found.id}`) || '[]');
+      setReviewsList(savedReviews);
+
+      // Load assigned accessories
+      try {
+        const response = await axios.get(`http://localhost:5000/api/recommendations/assigned/${id}`);
+        if (response.data && response.data.success && response.data.products.length > 0) {
+          setAccessories(response.data.products);
+        } else {
+          throw new Error('No assigned accessories');
+        }
+      } catch (err) {
+        const recs = JSON.parse(localStorage.getItem('admin_recommendations') || '[]');
+        const prodRec = recs.find(r => r.productId.toString() === id.toString());
+        let matchedAccs = [];
+        if (prodRec && prodRec.assignedProducts?.length > 0) {
+          matchedAccs = productsList.filter(p => prodRec.assignedProducts.includes(p.id));
+        } else {
+          matchedAccs = productsList.filter(p => p.category === 'Accessories' || p.category?.name === 'Accessories').slice(0, 3);
+        }
+        setAccessories(matchedAccs);
+      }
+
+      // Load related products
+      try {
+        const response = await axios.get(`http://localhost:5000/api/recommendations/similar/${id}`);
+        if (response.data && response.data.success) {
+          setRelatedProducts(response.data.products);
+        } else {
+          throw new Error('No similar products');
+        }
+      } catch (err) {
+        const related = productsList
+          .filter(p => (p.category === found.category || p.category?.name === found.category?.name) && p.id.toString() !== found.id.toString())
+          .slice(0, 4);
+        setRelatedProducts(related);
+      }
+
+      // Load frequently bought together
+      try {
+        const response = await axios.get(`http://localhost:5000/api/recommendations/bought-together/${id}`);
+        if (response.data && response.data.success) {
+          setFrequentlyBought(response.data.products);
+        } else {
+          throw new Error('No bought together products');
+        }
+      } catch (err) {
+        const fbt = productsList
+          .filter(p => p.id.toString() !== found.id.toString())
+          .slice(0, 4);
+        setFrequentlyBought(fbt);
+      }
+
+      // Load customers also bought
+      try {
+        const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null');
+        const headers = userInfo && userInfo.token ? { headers: { Authorization: `Bearer ${userInfo.token}` } } : {};
+        const response = await axios.get(`http://localhost:5000/api/recommendations`, headers);
+        if (response.data && response.data.success) {
+          setAlsoBought(response.data.products);
+        } else {
+          throw new Error('No recommendations');
+        }
+      } catch (err) {
+        const ab = productsList
+          .filter(p => p.id.toString() !== found.id.toString())
+          .sort((a, b) => b.rating - a.rating)
+          .slice(0, 4);
+        setAlsoBought(ab);
+      }
+
+      // Load recently viewed products
+      const rvIds = JSON.parse(localStorage.getItem('recently_viewed') || '[]');
+      const rvMatched = rvIds
+        .filter(x => x.toString() !== found.id.toString())
+        .map(rid => productsList.find(p => p.id.toString() === rid.toString()))
+        .filter(Boolean)
+        .slice(0, 4);
+      setRecentlyViewedList(rvMatched);
+
+      setActiveImageIndex(0);
+      setLoading(false);
+    };
+
+    loadData();
+  }, [id]);
+
+  // Load accessory recommendations from state helper
+  const loadRecommendations = () => {
+    // Already pre-loaded in useEffect to setAccessories, reset states
+    setAddedAccessories([]);
+    setSkippedAccessories([]);
   };
 
   const getCustomSurcharge = () => {
@@ -175,7 +248,15 @@ const ProductDetails = () => {
     return extra;
   };
 
-  const finalizeCartAdd = (includeAccessories = []) => {
+  const handleAddMainToCart = () => {
+    // If user selected custom measurements, validate them
+    if (showCustomizer && useCustomMeasurements) {
+      if (!bust || !waist || !hip || !shoulder || !neckSize || !sleeveLength || !armHole || !dressLengthCustom || !height || !weight) {
+        toast.warning('Please fill in all custom measurements.');
+        return;
+      }
+    }
+
     const isCustom = showCustomizer;
     const finalPrice = isCustom ? product.price + getCustomSurcharge() : product.price;
     const itemId = isCustom ? `${product.id}-custom-${Date.now()}` : product.id;
@@ -211,7 +292,6 @@ const ProductDetails = () => {
       productionTime: '5 weeks'
     } : null;
 
-    // Dispatch primary item
     dispatch(addToCart({
       id: itemId,
       productId: product.id,
@@ -226,40 +306,34 @@ const ProductDetails = () => {
       customization: customizationData
     }));
 
-    // Dispatch accessory items
-    includeAccessories.forEach(acc => {
-      dispatch(addToCart({
-        id: acc.id,
-        productId: acc.id,
-        name: acc.name,
-        price: acc.discountPrice || acc.price,
-        image: acc.images?.[0]?.url || 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80',
-        qty: 1,
-        size: acc.sizes?.[0] || 'One Size',
-        color: acc.colors?.[0] || 'Neutral',
-        isCustom: false
-      }));
-    });
+    toast.success(`${product.name} added to cart!`);
+    trackBackendInteraction(product.id, 'cart');
 
-    toast.success('Shopping Cart updated!');
-    setShowLookModal(false);
+    // Trigger Recommendation Popup
+    loadRecommendations();
+    setShowLookModal(true);
   };
 
-  const handleAccessoryToggle = (accId) => {
-    if (selectedAccessories.includes(accId)) {
-      setSelectedAccessories(selectedAccessories.filter(id => id !== accId));
-    } else {
-      setSelectedAccessories([...selectedAccessories, accId]);
-    }
+  const handleAddAccessory = (acc) => {
+    dispatch(addToCart({
+      id: acc.id || acc._id,
+      productId: acc.id || acc._id,
+      name: acc.name,
+      price: acc.discountPrice || acc.price,
+      image: acc.images?.[0]?.url || acc.images?.[0] || 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80',
+      qty: 1,
+      size: acc.sizes?.[0] || 'One Size',
+      color: acc.colors?.[0] || 'Neutral',
+      isCustom: false
+    }));
+    setAddedAccessories([...addedAccessories, acc.id || acc._id]);
+    toast.success(`${acc.name} added to cart!`);
+    trackBackendInteraction(acc.id || acc._id, 'cart');
   };
 
-  const handleSkipLook = () => {
-    finalizeCartAdd([]);
-  };
-
-  const handleAddLook = () => {
-    const itemsToAdd = accessories.filter(a => selectedAccessories.includes(a.id));
-    finalizeCartAdd(itemsToAdd);
+  const handleSkipAccessory = (accId) => {
+    setSkippedAccessories([...skippedAccessories, accId]);
+    toast.info('Accessory recommendation skipped.');
   };
 
   const handleReviewSubmit = (e) => {
@@ -954,55 +1028,131 @@ const ProductDetails = () => {
         </div>
       </section>
 
-      {/* Related Products */}
-      {relatedProducts.length > 0 && (
+      {/* 1. Perfect Matches / Complete the Look */}
+      {accessories.length > 0 && (
         <section className="border-t border-[var(--border-color)] pt-16 mt-16 space-y-10">
           <div className="text-center space-y-2">
-            <h3 className="text-xl font-bold uppercase tracking-widest text-[var(--text-color)]">Related Products</h3>
+            <span className="text-[10px] uppercase font-bold tracking-widest text-gold bg-gold/10 px-2.5 py-1 rounded-full">Perfect Matches</span>
+            <h3 className="text-xl font-bold uppercase tracking-widest text-[var(--text-color)] mt-2">Complete the Look</h3>
             <div className="h-0.5 w-16 bg-gold mx-auto"></div>
           </div>
           
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-            {relatedProducts.map(prod => (
-              <Link to={`/product/${prod.id}`} key={prod.id} className="group flex flex-col space-y-2">
-                <div className="relative h-64 overflow-hidden bg-gray-100 border border-[var(--border-color)]">
-                  <img src={prod.image} alt={prod.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-xs text-[var(--text-color)] line-clamp-1">{prod.name}</h3>
-                  <p className="text-xs text-gold font-bold font-sans mt-0.5">${prod.price}</p>
-                </div>
-              </Link>
+            {accessories.slice(0, 4).map(prod => (
+              <AnimatedProductCard key={prod.id || prod._id} prod={prod} />
             ))}
           </div>
         </section>
       )}
 
-      {/* Recently Viewed */}
+      {/* 2. Frequently Bought Together */}
+      {frequentlyBought.length > 0 && (
+        <section className="border-t border-[var(--border-color)] pt-16 mt-16 space-y-10">
+          <div className="text-center space-y-2">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-gold bg-gold/10 px-2.5 py-1 rounded-full">Atelier Bundle</span>
+            <h3 className="text-xl font-bold uppercase tracking-widest text-[var(--text-color)] mt-2">Frequently Bought Together</h3>
+            <div className="h-0.5 w-16 bg-gold mx-auto"></div>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            {frequentlyBought.slice(0, 4).map(prod => (
+              <AnimatedProductCard key={prod.id || prod._id} prod={prod} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 3. Customers Also Bought */}
+      {alsoBought.length > 0 && (
+        <section className="border-t border-[var(--border-color)] pt-16 mt-16 space-y-10">
+          <div className="text-center space-y-2">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-gold bg-gold/10 px-2.5 py-1 rounded-full">Popular Selection</span>
+            <h3 className="text-xl font-bold uppercase tracking-widest text-[var(--text-color)] mt-2">Customers Also Bought</h3>
+            <div className="h-0.5 w-16 bg-gold mx-auto"></div>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            {alsoBought.slice(0, 4).map(prod => (
+              <AnimatedProductCard key={prod.id || prod._id} prod={prod} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 4. Related Products */}
+      {relatedProducts.length > 0 && (
+        <section className="border-t border-[var(--border-color)] pt-16 mt-16 space-y-10">
+          <div className="text-center space-y-2">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-gold bg-gold/10 px-2.5 py-1 rounded-full">Similar Silhouette</span>
+            <h3 className="text-xl font-bold uppercase tracking-widest text-[var(--text-color)] mt-2">Related Products</h3>
+            <div className="h-0.5 w-16 bg-gold mx-auto"></div>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            {relatedProducts.map(prod => (
+              <AnimatedProductCard key={prod.id || prod._id} prod={prod} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 5. Recently Viewed */}
       {recentlyViewedList.length > 0 && (
         <section className="border-t border-[var(--border-color)] pt-16 mt-16 space-y-10">
           <div className="text-center space-y-2">
-            <h3 className="text-xl font-bold uppercase tracking-widest text-[var(--text-color)]">Recently Viewed</h3>
+            <span className="text-[10px] uppercase font-bold tracking-widest text-gold bg-gold/10 px-2.5 py-1 rounded-full">Your History</span>
+            <h3 className="text-xl font-bold uppercase tracking-widest text-[var(--text-color)] mt-2">Recently Viewed</h3>
             <div className="h-0.5 w-16 bg-gold mx-auto"></div>
           </div>
           
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
             {recentlyViewedList.map(prod => (
-              <Link to={`/product/${prod.id}`} key={prod.id} className="group flex flex-col space-y-2">
-                <div className="relative h-64 overflow-hidden bg-gray-100 border border-[var(--border-color)]">
-                  <img src={prod.image} alt={prod.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-xs text-[var(--text-color)] line-clamp-1">{prod.name}</h3>
-                  <p className="text-xs text-gold font-bold font-sans mt-0.5">${prod.price}</p>
-                </div>
-              </Link>
+              <AnimatedProductCard key={prod.id || prod._id} prod={prod} />
             ))}
           </div>
         </section>
       )}
 
     </div>
+  );
+};
+
+const AnimatedProductCard = ({ prod }) => {
+  const imgUrl = prod.images?.[0]?.url || prod.images?.[0] || prod.image || 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80';
+  
+  return (
+    <motion.div
+      whileHover={{ y: -8, scale: 1.02 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="group flex flex-col space-y-2 bg-[var(--card-bg)] border border-[var(--border-color)] p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden"
+    >
+      <div className="relative h-64 overflow-hidden bg-gray-150 rounded-lg">
+        <img 
+          src={imgUrl} 
+          alt={prod.name} 
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+        />
+        {/* Quick details overlay */}
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
+          <Link
+            to={`/product/${prod.id || prod._id}`}
+            className="p-2.5 bg-white text-gray-900 rounded-full hover:bg-gold hover:text-white transition-colors shadow"
+          >
+            <FiEye size={16} />
+          </Link>
+        </div>
+      </div>
+      <div className="pt-2">
+        <h3 className="font-bold text-xs text-[var(--text-color)] line-clamp-1 group-hover:text-gold transition-colors">{prod.name}</h3>
+        <p className="text-[10px] text-gray-400 mt-0.5">{prod.brand || 'Atelier Collection'}</p>
+        <div className="flex items-center justify-between mt-2 pt-1 border-t border-[var(--border-color)]">
+          <p className="text-xs font-bold text-gold font-sans">${prod.discountPrice || prod.price}</p>
+          <span className="text-[9px] uppercase tracking-wider font-semibold text-gray-400">
+            {typeof prod.category === 'object' ? prod.category.name : prod.category}
+          </span>
+        </div>
+      </div>
+    </motion.div>
   );
 };
 

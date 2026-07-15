@@ -27,6 +27,7 @@ const wishlistRoutes    = require('./routes/wishlistRoutes');
 const adminRoutes       = require('./routes/adminRoutes');
 const bannerRoutes      = require('./routes/bannerRoutes');
 const customOrderRoutes = require('./routes/customOrderRoutes');
+const recommendationRoutes = require('./routes/recommendationRoutes');
 
 app.get('/', (req, res) => res.json({ message: '🌟 Elegance Fashion API is running' }));
 
@@ -39,6 +40,7 @@ app.use('/api/wishlist',      wishlistRoutes);
 app.use('/api/admin',         adminRoutes);
 app.use('/api/banners',       bannerRoutes);
 app.use('/api/custom-orders', customOrderRoutes);
+app.use('/api/recommendations', recommendationRoutes);
 
 // ─── Error Handlers ──────────────────────────────────────────────────────────
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
@@ -48,10 +50,12 @@ app.use(errorHandler);
 // ─── DB + Server ─────────────────────────────────────────────────────────────
 const PORT     = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
+const seedDatabase = require('./utils/dbSeeder');
 
 mongoose.connect(MONGO_URI)
-    .then(() => {
+    .then(async () => {
         console.log('✅ Connected to MongoDB Atlas');
+        await seedDatabase();
         app.listen(PORT, () => {
             console.log(`🚀 Elegance Fashion API running on http://localhost:${PORT}`);
         });

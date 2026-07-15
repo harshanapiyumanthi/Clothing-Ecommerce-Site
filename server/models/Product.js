@@ -26,6 +26,7 @@ const productSchema = new mongoose.Schema({
     isBestSeller: { type: Boolean, default: false },
     tags: [{ type: String }],
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    recommendations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
 }, { timestamps: true });
 
 // Full-text search index

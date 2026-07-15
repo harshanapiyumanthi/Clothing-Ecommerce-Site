@@ -1,5 +1,14 @@
 // Admin Mock Database & Real API Gateway
 // Persisted via LocalStorage for standalone preview, synchronizes with server endpoints when available.
+import axios from 'axios';
+
+const getAuthHeaders = () => {
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null');
+  if (userInfo && userInfo.token) {
+    return { headers: { Authorization: `Bearer ${userInfo.token}` } };
+  }
+  return {};
+};
 
 const INITIAL_CATEGORIES = [
   { id: 'cat-1', name: 'Women', slug: 'women', description: 'Sophisticated women’s luxury attire.', image: 'https://images.unsplash.com/photo-1515347619362-7104b2b4bc66?q=80&w=600', parent: null, isActive: true },
@@ -366,9 +375,30 @@ export const adminApi = {
 
   // Recommendation management
   getRecommendations: async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/recommendations/admin', getAuthHeaders());
+      if (response.data && response.data.success) {
+        localStorage.setItem('admin_recommendations', JSON.stringify(response.data.recommendations));
+        return response.data.recommendations;
+      }
+    } catch (err) {
+      console.warn('Failed to fetch recommendations from server, falling back to local storage', err.message);
+    }
     return JSON.parse(localStorage.getItem('admin_recommendations') || '[]');
   },
   saveRecommendation: async (productId, assignedIds) => {
+    try {
+      const response = await axios.put(`http://localhost:5000/api/recommendations/admin/${productId}`, {
+        assignedProducts: assignedIds
+      }, getAuthHeaders());
+      if (response.data && response.data.success) {
+        localStorage.setItem('admin_recommendations', JSON.stringify(response.data.recommendations));
+        return response.data.recommendations;
+      }
+    } catch (err) {
+      console.warn('Failed to save recommendations to server, falling back to local storage', err.message);
+    }
+    
     const recs = JSON.parse(localStorage.getItem('admin_recommendations') || '[]');
     const idx = recs.findIndex(r => r.productId === productId);
     if (idx !== -1) {
