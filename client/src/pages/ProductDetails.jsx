@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiHeart, FiMinus, FiPlus, FiStar, FiSliders, FiInfo, FiCheck, FiX, FiShoppingBag } from 'react-icons/fi';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../redux/slices/cartSlice';
 import { toast } from 'react-toastify';
+import Breadcrumb from '../components/Breadcrumb';
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -53,14 +54,18 @@ const ProductDetails = () => {
   const [newReviewRating, setNewReviewRating] = useState(5);
   const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null');
 
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [recentlyViewedList, setRecentlyViewedList] = useState([]);
+
   useEffect(() => {
     // Fetch products
-    const products = JSON.parse(localStorage.getItem('admin_products') || '[]');
+    const productsList = JSON.parse(localStorage.getItem('admin_products') || '[]');
     // Try matching param ID
-    let found = products.find(p => p.id.toString() === id.toString());
+    let found = productsList.find(p => p.id.toString() === id.toString());
     if (!found) {
       // Fallback to prod-1 or mock product details
-      found = products[0] || {
+      found = productsList[0] || {
         id: 'prod-1',
         name: 'Silk Evening Gown',
         price: 299,
@@ -91,6 +96,22 @@ const ProductDetails = () => {
     const savedReviews = JSON.parse(localStorage.getItem(`product_reviews_${found.id}`) || '[]');
     setReviewsList(savedReviews);
 
+    // Load related products
+    const related = productsList
+      .filter(p => p.category === found.category && p.id.toString() !== found.id.toString())
+      .slice(0, 4);
+    setRelatedProducts(related);
+
+    // Load recently viewed products
+    const rvIds = JSON.parse(localStorage.getItem('recently_viewed') || '[]');
+    const rvMatched = rvIds
+      .filter(x => x.toString() !== found.id.toString())
+      .map(rid => productsList.find(p => p.id.toString() === rid.toString()))
+      .filter(Boolean)
+      .slice(0, 4);
+    setRecentlyViewedList(rvMatched);
+
+    setActiveImageIndex(0);
     setLoading(false);
   }, [id]);
 
@@ -226,21 +247,30 @@ const ProductDetails = () => {
   const currentPrice = showCustomizer ? product.price + 50 : product.price;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in relative">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in relative space-y-8">
+      <Breadcrumb items={[{ label: 'Shop', link: '/shop' }, { label: product.name, link: `/product/${product.id}` }]} />
       
       <div className="flex flex-col lg:flex-row gap-12">
         
         {/* Product Images */}
         <div className="w-full lg:w-1/2 flex gap-4">
           <div className="flex flex-col gap-4 w-24">
-            {product.images?.map((img, i) => (
-              <div key={i} className="h-32 bg-gray-150 cursor-pointer border border-[var(--border-color)] hover:border-gold transition-colors">
+            {(product.images && product.images.length > 0 ? product.images : [{ url: product.image }]).map((img, i) => (
+              <div 
+                key={i} 
+                onClick={() => setActiveImageIndex(i)}
+                className={`h-32 bg-gray-150 cursor-pointer border transition-colors ${activeImageIndex === i ? 'border-gold shadow-sm' : 'border-[var(--border-color)] hover:border-gold'}`}
+              >
                 <img src={img.url || img} alt="" className="w-full h-full object-cover" />
               </div>
             ))}
           </div>
-          <div className="flex-grow bg-gray-150 h-[500px] sm:h-[600px] overflow-hidden group border border-[var(--border-color)]">
-            <img src={product.images?.[0]?.url || product.images?.[0]} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-115" />
+          <div className="flex-grow bg-gray-150 h-[500px] sm:h-[600px] overflow-hidden group border border-[var(--border-color)] relative">
+            <img 
+              src={(product.images && product.images.length > 0 ? product.images : [{ url: product.image }])[activeImageIndex]?.url || (product.images && product.images.length > 0 ? product.images : [{ url: product.image }])[activeImageIndex]} 
+              alt={product.name} 
+              className="w-full h-full object-cover origin-center transition-transform duration-350 hover:scale-125 cursor-zoom-in" 
+            />
           </div>
         </div>
 
@@ -722,6 +752,54 @@ const ProductDetails = () => {
 
         </div>
       </section>
+
+      {/* Related Products */}
+      {relatedProducts.length > 0 && (
+        <section className="border-t border-[var(--border-color)] pt-16 mt-16 space-y-10">
+          <div className="text-center space-y-2">
+            <h3 className="text-xl font-bold uppercase tracking-widest text-[var(--text-color)]">Related Products</h3>
+            <div className="h-0.5 w-16 bg-gold mx-auto"></div>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            {relatedProducts.map(prod => (
+              <Link to={`/product/${prod.id}`} key={prod.id} className="group flex flex-col space-y-2">
+                <div className="relative h-64 overflow-hidden bg-gray-100 border border-[var(--border-color)]">
+                  <img src={prod.image} alt={prod.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-xs text-[var(--text-color)] line-clamp-1">{prod.name}</h3>
+                  <p className="text-xs text-gold font-bold font-sans mt-0.5">${prod.price}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Recently Viewed */}
+      {recentlyViewedList.length > 0 && (
+        <section className="border-t border-[var(--border-color)] pt-16 mt-16 space-y-10">
+          <div className="text-center space-y-2">
+            <h3 className="text-xl font-bold uppercase tracking-widest text-[var(--text-color)]">Recently Viewed</h3>
+            <div className="h-0.5 w-16 bg-gold mx-auto"></div>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            {recentlyViewedList.map(prod => (
+              <Link to={`/product/${prod.id}`} key={prod.id} className="group flex flex-col space-y-2">
+                <div className="relative h-64 overflow-hidden bg-gray-100 border border-[var(--border-color)]">
+                  <img src={prod.image} alt={prod.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-xs text-[var(--text-color)] line-clamp-1">{prod.name}</h3>
+                  <p className="text-xs text-gold font-bold font-sans mt-0.5">${prod.price}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
     </div>
   );

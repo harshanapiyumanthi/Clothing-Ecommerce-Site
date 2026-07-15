@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { FiShoppingBag, FiUser, FiUserPlus, FiMenu, FiLogOut, FiSun, FiMoon, FiSearch } from 'react-icons/fi';
+import { FiShoppingBag, FiUser, FiUserPlus, FiMenu, FiLogOut, FiSun, FiMoon, FiSearch, FiHeart } from 'react-icons/fi';
 import { logout } from '../redux/slices/authSlice';
 
 const Navbar = () => {
   const { userInfo } = useSelector((state) => state.auth);
   const { cartItems } = useSelector((state) => state.cart);
+  const { wishlistItems } = useSelector((state) => state.wishlist);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -147,6 +148,16 @@ const Navbar = () => {
               {isDark ? <FiSun size={20} /> : <FiMoon size={20} />}
             </button>
 
+            {/* Wishlist Link */}
+            <Link to="/wishlist" className="relative hover:text-gold transition-colors" aria-label="Wishlist">
+              <FiHeart size={20} />
+              {wishlistItems && wishlistItems.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-gold text-white text-[9px] font-bold rounded-full h-4.5 w-4.5 flex items-center justify-center">
+                  {wishlistItems.length}
+                </span>
+              )}
+            </Link>
+
             {/* Cart Link */}
             <Link to="/cart" className="relative hover:text-gold transition-colors" aria-label="Shopping Cart">
               <FiShoppingBag size={20} />
@@ -165,10 +176,15 @@ const Navbar = () => {
                   <div className="px-4 py-2 text-[10px] text-gray-500 uppercase tracking-widest border-b border-[var(--border-color)]">
                     Welcome, {userInfo.name}
                   </div>
-                  <Link to="/admin" className="block px-4 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-900 text-gold transition-colors uppercase tracking-wider font-semibold">
-                    Dashboard
+                  <Link to="/profile" className="block px-4 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gold transition-colors uppercase tracking-wider font-semibold">
+                    My Profile
                   </Link>
-                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-xs text-red-500 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors flex items-center gap-2 uppercase tracking-wider font-semibold cursor-pointer">
+                  {userInfo.role === 'admin' && (
+                    <Link to="/admin" className="block px-4 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-900 text-gold transition-colors uppercase tracking-wider font-semibold">
+                      Dashboard
+                    </Link>
+                  )}
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-xs text-red-500 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors flex items-center gap-2 uppercase tracking-wider font-semibold cursor-pointer border-t border-[var(--border-color)] mt-1 pt-1.5">
                     <FiLogOut /> Logout
                   </button>
                 </div>
