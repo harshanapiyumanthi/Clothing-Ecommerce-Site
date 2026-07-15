@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { FiArrowRight, FiMail, FiCheck, FiHeart, FiEye, FiMessageCircle } from 'react-icons/fi';
+import { FiArrowRight, FiMail, FiCheck, FiHeart, FiEye, FiMessageCircle, FiClock, FiCopy } from 'react-icons/fi';
+import { toast } from 'react-toastify';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -9,6 +10,10 @@ const Home = () => {
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+
+  // Countdown timer state (hours, minutes, seconds)
+  const [timeLeft, setTimeLeft] = useState({ hours: 8, minutes: 42, seconds: 19 });
+  const [copiedCoupon, setCopiedCoupon] = useState('');
 
   useEffect(() => {
     const dbProducts = JSON.parse(localStorage.getItem('admin_products') || '[]');
@@ -24,11 +29,37 @@ const Home = () => {
     }
   }, []);
 
+  // Flash Sale countdown interval ticker
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev.seconds > 0) {
+          return { ...prev, seconds: prev.seconds - 1 };
+        } else if (prev.minutes > 0) {
+          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+        } else if (prev.hours > 0) {
+          return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        } else {
+          // Restart loop to simulate persistent demo countdown
+          return { hours: 12, minutes: 0, seconds: 0 };
+        }
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const handleSubscribe = (e) => {
     e.preventDefault();
     if (!newsletterEmail.trim()) return;
     setSubscribed(true);
     setNewsletterEmail('');
+  };
+
+  const copyCouponCode = (code) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCoupon(code);
+    toast.success(`Coupon code "${code}" copied!`);
+    setTimeout(() => setCopiedCoupon(''), 2500);
   };
 
   // Get active tab products
@@ -62,23 +93,27 @@ const Home = () => {
     { id: 6, likes: '2.9k', comments: 92, image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?q=80&w=400&auto=format&fit=crop' },
   ];
 
+  // Helper format countdown double digit
+  const doubleDigit = (val) => String(val).padStart(2, '0');
+
   return (
-    <div className="animate-fade-in space-y-20 pb-16">
+    <div className="animate-fade-in space-y-24 pb-16">
       
       {/* Hero Banner Section */}
       <section className="relative h-[85vh] flex items-center justify-center bg-gray-900 overflow-hidden">
-        <div className="absolute inset-0 bg-black/40 z-10"></div>
+        <div className="absolute inset-0 bg-black/45 z-10"></div>
         <img 
           src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop" 
           alt="Luxury fashion collection showcase" 
           className="absolute inset-0 w-full h-full object-cover scale-105"
+          loading="eager"
         />
         <div className="relative z-20 text-center text-white px-4 space-y-6">
           <motion.p
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6 }}
-            className="text-xs uppercase tracking-[0.3em] font-semibold text-gold"
+            className="text-xs uppercase tracking-[0.3em] font-bold text-gold text-gold"
           >
             New Collection Autumn / Winter
           </motion.p>
@@ -86,7 +121,7 @@ const Home = () => {
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.15 }}
-            className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight uppercase font-sans"
+            className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-widest uppercase font-sans"
           >
             Elegance Defined
           </motion.h1>
@@ -104,10 +139,76 @@ const Home = () => {
             transition={{ duration: 0.8, delay: 0.45 }}
             className="pt-4"
           >
-            <Link to="/shop" className="inline-block bg-gold text-white px-9 py-4 uppercase tracking-[0.2em] text-[10px] font-bold hover:bg-white hover:text-black transition-all duration-300 shadow-lg shadow-black/10">
+            <Link to="/shop" className="inline-block bg-gold text-white px-9 py-4 uppercase tracking-[0.2em] text-[10px] font-bold hover:bg-white hover:text-black transition-all duration-300 shadow-lg shadow-black/15">
               Shop Collections
             </Link>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Premium Flash Sales Ticking Banner */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-gradient-to-r from-gray-950 via-gray-900 to-black border border-[var(--border-color)] rounded-3xl p-8 sm:p-12 flex flex-col lg:flex-row items-center justify-between gap-8 relative overflow-hidden">
+          {/* Accent light elements */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-gold/5 rounded-full blur-[100px] -z-10" />
+          
+          <div className="space-y-4 max-w-lg text-center lg:text-left">
+            <span className="bg-gold/15 text-gold text-[9px] font-bold tracking-widest px-3.5 py-1 rounded-full border border-gold/25 uppercase">
+              Exclusive Time-Limited Offer
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-wider text-white uppercase font-sans">
+              Atelier Flash Sale
+            </h2>
+            <p className="text-xs text-gray-400 font-light leading-relaxed">
+              Premium tailored garments, accessories, and seasonal silk dresses marked down for a few hours. Complete your bespoke collection today.
+            </p>
+
+            {/* Countdown digits display */}
+            <div className="flex justify-center lg:justify-start items-center gap-4 pt-2">
+              <div className="flex items-center gap-1.5 text-gray-500 font-mono text-[9px] uppercase font-bold tracking-wider">
+                <FiClock className="text-gold animate-pulse" size={14} /> Ends In:
+              </div>
+              <div className="flex gap-2 text-white font-mono text-center">
+                <div className="bg-white/5 border border-white/10 px-3 py-2 rounded-lg min-w-12">
+                  <span className="text-base font-bold block">{doubleDigit(timeLeft.hours)}</span>
+                  <span className="text-[8px] uppercase tracking-wider text-gray-400">Hrs</span>
+                </div>
+                <div className="bg-white/5 border border-white/10 px-3 py-2 rounded-lg min-w-12">
+                  <span className="text-base font-bold block">{doubleDigit(timeLeft.minutes)}</span>
+                  <span className="text-[8px] uppercase tracking-wider text-gray-400">Min</span>
+                </div>
+                <div className="bg-white/5 border border-white/10 px-3 py-2 rounded-lg min-w-12">
+                  <span className="text-base font-bold block-color text-gold">{doubleDigit(timeLeft.seconds)}</span>
+                  <span className="text-[8px] uppercase tracking-wider text-gray-400">Sec</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Flash products preview */}
+          <div className="grid grid-cols-2 gap-4 w-full lg:max-w-md shrink-0">
+            {products.slice(0, 2).map((item, idx) => (
+              <div key={idx} className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col space-y-2 relative group hover:border-gold/30 transition-all duration-300">
+                <div className="absolute top-2.5 left-2.5 bg-rose-600 text-white font-bold text-[8px] uppercase px-2 py-0.5 rounded-sm tracking-wider z-20">
+                  -15% Off
+                </div>
+                <div className="h-36 overflow-hidden rounded-xl bg-gray-900 border border-white/5">
+                  <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-semibold text-gray-200 line-clamp-1">{item.name}</h4>
+                  <div className="flex gap-2 items-center mt-1">
+                    <span className="text-xs text-gold font-bold font-sans">${item.discountPrice || Math.floor(item.price * 0.85)}</span>
+                    <span className="text-[10px] text-gray-500 line-through font-sans">${item.price}</span>
+                  </div>
+                </div>
+                <Link to={`/product/${item.id}`} className="w-full bg-white/10 hover:bg-gold text-white text-[9px] uppercase tracking-widest font-bold py-1.5 rounded-lg text-center transition-colors">
+                  View Detail
+                </Link>
+              </div>
+            ))}
+          </div>
+
         </div>
       </section>
 
@@ -200,6 +301,53 @@ const Home = () => {
                 </div>
               </Link>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Copyable Premium Coupons & VIP Access Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold uppercase tracking-widest text-[var(--text-color)]">
+            Exclusive Coupons
+          </h2>
+          <div className="h-0.5 w-16 bg-gold mx-auto"></div>
+          <p className="text-[11px] text-gray-400 tracking-wider">Apply these VIP discount codes at checkout to redeem savings</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {/* Welcome coupon */}
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl p-6 flex items-center justify-between shadow-sm relative group overflow-hidden">
+            <div className="space-y-1.5">
+              <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400 text-[8px] font-bold uppercase px-2 py-0.5 rounded tracking-wider">Active</span>
+              <h3 className="text-sm font-bold text-[var(--text-color)]">10% Welcome Discount</h3>
+              <p className="text-[10px] text-gray-400">Available to all premium boutique customers</p>
+              <div className="font-mono text-xs text-gold font-bold mt-2">Code: WELCOME10</div>
+            </div>
+            <button
+              onClick={() => copyCouponCode('WELCOME10')}
+              className="p-3 bg-gray-50 dark:bg-gray-900 border border-[var(--border-color)] hover:border-gold rounded-full transition-all group-hover:scale-105 flex items-center justify-center text-gray-500 hover:text-gold cursor-pointer"
+              title="Copy code"
+            >
+              {copiedCoupon === 'WELCOME10' ? <FiCheck className="text-emerald-500 animate-scale-up" size={16} /> : <FiCopy size={16} />}
+            </button>
+          </div>
+
+          {/* Gold Luxury Coupon */}
+          <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl p-6 flex items-center justify-between shadow-sm relative group overflow-hidden">
+            <div className="space-y-1.5">
+              <span className="bg-gold/15 text-gold text-[8px] font-bold uppercase px-2 py-0.5 rounded tracking-wider">VIP Exclusive</span>
+              <h3 className="text-sm font-bold text-[var(--text-color)]">20% Luxury Bundle Off</h3>
+              <p className="text-[10px] text-gray-400">Save big on bespoke gown customization orders</p>
+              <div className="font-mono text-xs text-gold font-bold mt-2">Code: GOLD20</div>
+            </div>
+            <button
+              onClick={() => copyCouponCode('GOLD20')}
+              className="p-3 bg-gray-50 dark:bg-gray-900 border border-[var(--border-color)] hover:border-gold rounded-full transition-all group-hover:scale-105 flex items-center justify-center text-gray-500 hover:text-gold cursor-pointer"
+              title="Copy code"
+            >
+              {copiedCoupon === 'GOLD20' ? <FiCheck className="text-emerald-500 animate-scale-up" size={16} /> : <FiCopy size={16} />}
+            </button>
           </div>
         </div>
       </section>
@@ -305,3 +453,4 @@ const Home = () => {
 };
 
 export default Home;
+

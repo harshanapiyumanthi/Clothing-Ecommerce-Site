@@ -3,48 +3,48 @@ import { FiInstagram, FiTwitter, FiFacebook } from 'react-icons/fi';
 
 const Footer = () => {
   return (
-    <footer className="bg-primary text-secondary dark:bg-black dark:text-white border-t border-border-color mt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer className="bg-primary text-secondary dark:bg-black dark:text-white border-t border-[var(--border-color)] mt-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           
-          <div className="col-span-1 md:col-span-2">
-            <span className="text-3xl font-bold tracking-widest text-gold uppercase mb-4 block">
-              Elegance
+          <div className="col-span-1 md:col-span-2 space-y-6">
+            <span className="text-2xl font-bold tracking-[0.25em] text-gold uppercase block">
+              ELEGANCE
             </span>
-            <p className="text-sm opacity-80 max-w-md leading-relaxed">
-              Curating luxury fashion for the modern era. We believe in high-quality materials, sustainable practices, and timeless design.
+            <p className="text-xs opacity-75 max-w-sm leading-relaxed font-light">
+              Crafting premium luxury garments with sustainable materials, bespoke tailoring accuracy, and timeless high-fashion aesthetics for the discerning modern clientele.
             </p>
-            <div className="flex space-x-4 mt-6">
-              <a href="#" className="hover:text-gold transition-colors"><FiInstagram size={20} /></a>
-              <a href="#" className="hover:text-gold transition-colors"><FiTwitter size={20} /></a>
-              <a href="#" className="hover:text-gold transition-colors"><FiFacebook size={20} /></a>
+            <div className="flex space-x-6 pt-2">
+              <a href="#" aria-label="Instagram link" className="hover:text-gold transition-colors duration-300"><FiInstagram size={18} /></a>
+              <a href="#" aria-label="Twitter link" className="hover:text-gold transition-colors duration-300"><FiTwitter size={18} /></a>
+              <a href="#" aria-label="Facebook link" className="hover:text-gold transition-colors duration-300"><FiFacebook size={18} /></a>
             </div>
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold mb-4 uppercase tracking-wider">Shop</h3>
-            <ul className="space-y-2 opacity-80 text-sm">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] mb-6 text-gold">Shop Pages</h3>
+            <ul className="space-y-3 opacity-80 text-xs font-semibold tracking-wider uppercase">
               <li><Link to="/shop?category=Women" className="hover:text-gold transition-colors">Women's Collection</Link></li>
               <li><Link to="/shop?category=Teen" className="hover:text-gold transition-colors">Teen Collection</Link></li>
-              <li><Link to="/shop?category=Office" className="hover:text-gold transition-colors">Office Kit</Link></li>
+              <li><Link to="/shop?category=Office" className="hover:text-gold transition-colors">Office Wear</Link></li>
               <li><Link to="/shop?category=Sarees" className="hover:text-gold transition-colors">Sarees</Link></li>
             </ul>
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold mb-4 uppercase tracking-wider">Help</h3>
-            <ul className="space-y-2 opacity-80 text-sm">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] mb-6 text-gold">Customer Care</h3>
+            <ul className="space-y-3 opacity-80 text-xs font-semibold tracking-wider uppercase">
               <li><Link to="/contact" className="hover:text-gold transition-colors">Contact Us</Link></li>
-              <li><Link to="/shipping" className="hover:text-gold transition-colors">Shipping & Returns</Link></li>
-              <li><Link to="/faq" className="hover:text-gold transition-colors">FAQ</Link></li>
-              <li><Link to="/terms" className="hover:text-gold transition-colors">Terms of Service</Link></li>
+              <li><Link to="/faq" className="hover:text-gold transition-colors">FAQs</Link></li>
+              <li><Link to="/privacy" className="hover:text-gold transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="hover:text-gold transition-colors">Terms & Conditions</Link></li>
             </ul>
           </div>
 
         </div>
         
-        <div className="border-t border-gray-200 dark:border-gray-800 mt-12 pt-8 text-center text-xs opacity-60">
-          <p>&copy; {new Date().getFullYear()} Elegance Fashion. All rights reserved.</p>
+        <div className="border-t border-[var(--border-color)] mt-16 pt-8 text-center text-[10px] uppercase tracking-widest opacity-60">
+          <p>&copy; {new Date().getFullYear()} Elegance Fashion Couture. All rights reserved.</p>
         </div>
       </div>
     </footer>
@@ -52,3 +52,4 @@ const Footer = () => {
 };
 
 export default Footer;
+

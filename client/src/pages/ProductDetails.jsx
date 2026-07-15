@@ -397,11 +397,22 @@ const ProductDetails = () => {
           
           <div>
             <h1 className="text-3xl font-bold uppercase tracking-wider text-[var(--text-color)]">{product.name}</h1>
-            <div className="flex items-center gap-4 mt-2">
+            <div className="flex flex-wrap items-center gap-4 mt-2">
               <div className="flex text-gold">
-                {[...Array(5)].map((_, i) => <FiStar key={i} fill={i < 4 ? 'currentColor' : 'none'} size={15} />)}
+                {[...Array(5)].map((_, i) => <FiStar key={i} fill={i < Math.round(product.rating || 4.5) ? 'currentColor' : 'none'} size={15} />)}
               </div>
-              <span className="text-xs opacity-65">(124 Reviews)</span>
+              <span className="text-xs opacity-65">({reviewsList.length > 0 ? reviewsList.length : 124} Reviews)</span>
+              
+              {/* Inventory stock alert warning */}
+              {product.stock !== undefined && product.stock > 0 && product.stock < 10 ? (
+                <span className="bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 text-[9px] font-extrabold tracking-widest px-2.5 py-0.5 rounded uppercase animate-pulse">
+                  Only {product.stock} left in stock!
+                </span>
+              ) : product.stock === 0 ? (
+                <span className="bg-gray-100 dark:bg-gray-800 text-gray-500 text-[9px] font-extrabold tracking-widest px-2.5 py-0.5 rounded uppercase">
+                  Out of Stock
+                </span>
+              ) : null}
             </div>
           </div>
           

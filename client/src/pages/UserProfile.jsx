@@ -96,6 +96,64 @@ const UserProfile = () => {
     }, 800);
   };
 
+  const renderOrderTimeline = (order) => {
+    // Determine the list of steps to show
+    const isCustomOrder = order.orderItems?.some(item => item.isCustom);
+    const steps = isCustomOrder ? [
+      'Received', 'Design Review', 'Cutting', 'Tailoring', 'Quality Check', 'Ready', 'Delivered'
+    ] : [
+      'Received', 'Processing', 'Shipped', 'Delivered'
+    ];
+
+    // Find the index of the current status
+    // Map order.orderStatus (e.g. 'Order Received' maps to 'Received')
+    let currentStatus = order.orderStatus || 'Received';
+    if (currentStatus === 'Order Received') currentStatus = 'Received';
+
+    const currentIndex = steps.findIndex(
+      step => step.toLowerCase() === currentStatus.toLowerCase()
+    );
+
+    return (
+      <div className="w-full py-4 border-b border-[var(--border-color)] overflow-x-auto mb-4">
+        <div className="flex items-center justify-between min-w-[500px] relative px-4">
+          {/* Connector Line */}
+          <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-250 dark:bg-gray-800 -translate-y-1/2 z-0" />
+          <div 
+            className="absolute top-3 left-0 h-0.5 bg-gold -translate-y-1/2 z-0 transition-all duration-500" 
+            style={{ width: `${(Math.max(0, currentIndex) / (steps.length - 1)) * 100}%` }}
+          />
+
+          {/* Steps */}
+          {steps.map((step, idx) => {
+            const isCompleted = idx <= currentIndex;
+            const isActive = idx === currentIndex;
+            return (
+              <div key={step} className="flex flex-col items-center relative z-10 space-y-1">
+                <div 
+                  className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[9px] transition-all duration-300 ${
+                    isCompleted 
+                      ? 'bg-gold text-white scale-110 shadow-sm shadow-gold/25' 
+                      : 'bg-[var(--card-bg)] border border-[var(--border-color)] text-gray-400'
+                  } ${isActive ? 'ring-4 ring-gold/20' : ''}`}
+                >
+                  {idx + 1}
+                </div>
+                <span 
+                  className={`text-[8px] uppercase tracking-wider font-extrabold whitespace-nowrap ${
+                    isActive ? 'text-gold' : isCompleted ? 'text-[var(--text-color)]' : 'text-gray-405'
+                  }`}
+                >
+                  {step}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const breadcrumbItems = [{ label: 'My Profile', link: '/profile' }];
 
   return (
@@ -279,6 +337,9 @@ const UserProfile = () => {
                       </div>
 
                       <div className="p-4 space-y-4">
+                        {/* Status Timeline */}
+                        {renderOrderTimeline(order)}
+
                         {order.orderItems?.map((item, idx) => (
                           <div key={idx} className="flex gap-4 items-center">
                             <img

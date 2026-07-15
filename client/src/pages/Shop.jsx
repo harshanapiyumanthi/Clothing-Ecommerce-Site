@@ -325,6 +325,7 @@ const Shop = () => {
                   <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {paginatedProducts.map((product) => {
                       const isWishlisted = wishlistItems.some(x => x.id === product.id);
+                      const hasDiscount = product.discountPrice && product.discountPrice < product.price;
                       return (
                         <motion.div
                           layout
@@ -333,24 +334,31 @@ const Shop = () => {
                           exit={{ opacity: 0, scale: 0.95 }}
                           transition={{ duration: 0.3 }}
                           key={product.id}
-                          className="group flex flex-col space-y-3 relative"
+                          className="group flex flex-col space-y-3 relative bg-[var(--card-bg)] border border-[var(--border-color)] p-3 rounded-2xl hover:shadow-lg transition-all duration-300"
                         >
-                          <Link to={`/product/${product.id}`} className="block relative h-80 overflow-hidden bg-gray-100 border border-[var(--border-color)]">
+                          <Link to={`/product/${product.id}`} className="block relative h-80 overflow-hidden rounded-xl bg-gray-100 border border-[var(--border-color)]">
                             <img 
                               src={product.image} 
                               alt={product.name} 
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                             />
                             
+                            {/* Discount badge */}
+                            {hasDiscount && (
+                              <div className="absolute top-3 left-3 bg-rose-600 text-white font-bold text-[8px] uppercase px-2 py-0.5 rounded-sm tracking-wider z-20">
+                                Save ${(product.price - product.discountPrice)}
+                              </div>
+                            )}
+
                             {/* Wishlist toggle button */}
                             <button
                               onClick={(e) => handleWishlistToggle(e, product)}
                               className="absolute top-3 right-3 p-2 bg-white/80 dark:bg-black/80 backdrop-blur rounded-full shadow hover:text-gold transition-colors z-20 cursor-pointer"
                               title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
                             >
-                              <FiHeart size={14} className={isWishlisted ? 'fill-gold text-gold' : 'text-gray-650'} />
+                              <FiHeart size={14} className={isWishlisted ? 'fill-gold text-gold animate-scale-up' : 'text-gray-650'} />
                             </button>
-
+ 
                             {/* View details & Quick View hover overlay */}
                             <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-end pb-4 space-y-2">
                               <span className="bg-white text-black px-6 py-2 text-[10px] uppercase tracking-widest font-bold hover:bg-gold hover:text-white transition-all shadow-md">
@@ -364,9 +372,18 @@ const Shop = () => {
                               </button>
                             </div>
                           </Link>
-                          <div>
-                            <h3 className="font-semibold text-xs text-[var(--text-color)]">{product.name}</h3>
-                            <p className="text-xs text-gold font-bold font-sans mt-0.5">${product.price}</p>
+                          <div className="px-1">
+                            <h3 className="font-semibold text-xs text-[var(--text-color)] line-clamp-1">{product.name}</h3>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs text-gold font-bold font-sans">
+                                ${hasDiscount ? product.discountPrice : product.price}
+                              </span>
+                              {hasDiscount && (
+                                <span className="text-[10px] text-gray-500 line-through font-sans">
+                                  ${product.price}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </motion.div>
                       );
@@ -453,9 +470,16 @@ const Shop = () => {
                     <h3 className="text-xl font-bold uppercase tracking-wider text-[var(--text-color)] mt-2">
                       {quickViewProduct.name}
                     </h3>
-                    <p className="text-lg font-bold text-gold font-sans mt-1">
-                      ${quickViewProduct.price}
-                    </p>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-lg font-bold text-gold font-sans">
+                        ${quickViewProduct.discountPrice && quickViewProduct.discountPrice < quickViewProduct.price ? quickViewProduct.discountPrice : quickViewProduct.price}
+                      </span>
+                      {quickViewProduct.discountPrice && quickViewProduct.discountPrice < quickViewProduct.price && (
+                        <span className="text-xs line-through text-gray-500 font-sans">
+                          ${quickViewProduct.price}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <p className="text-xs text-gray-500 leading-relaxed">
