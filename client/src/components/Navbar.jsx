@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { FiShoppingBag, FiUser, FiUserPlus, FiMenu, FiLogOut, FiSun, FiMoon, FiSearch, FiHeart } from 'react-icons/fi';
+import { FiShoppingBag, FiUser, FiUserPlus, FiMenu, FiLogOut, FiSun, FiMoon, FiSearch, FiHeart, FiBell } from 'react-icons/fi';
 import { logout } from '../redux/slices/authSlice';
 
 const Navbar = () => {
@@ -92,12 +92,15 @@ const Navbar = () => {
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex space-x-8 items-center">
-            <Link to="/" className="text-xs uppercase tracking-widest font-semibold hover:text-gold transition-colors">Home</Link>
-            <Link to="/shop" className="text-xs uppercase tracking-widest font-semibold hover:text-gold transition-colors">Shop</Link>
-            <Link to="/about" className="text-xs uppercase tracking-widest font-semibold hover:text-gold transition-colors">About</Link>
-            <Link to="/faq" className="text-xs uppercase tracking-widest font-semibold hover:text-gold transition-colors">FAQ</Link>
-            <Link to="/contact" className="text-xs uppercase tracking-widest font-semibold hover:text-gold transition-colors">Contact</Link>
+          <div className="hidden md:flex space-x-6 items-center">
+            <Link to="/" className="text-[11px] uppercase tracking-widest font-bold hover:text-gold transition-colors">Home</Link>
+            <Link to="/shop" className="text-[11px] uppercase tracking-widest font-bold hover:text-gold transition-colors">Shop</Link>
+            <Link to="/shop?sort=newest" className="text-[11px] uppercase tracking-widest font-bold hover:text-gold transition-colors">New Arrivals</Link>
+            <Link to="/shop?category=Collections" className="text-[11px] uppercase tracking-widest font-bold hover:text-gold transition-colors">Collections</Link>
+            <Link to="/studio" className="text-[11px] uppercase tracking-widest font-bold text-gold hover:text-black dark:hover:text-white transition-colors flex items-center gap-1">
+              Studio
+            </Link>
+            <Link to="/profile?tab=membership" className="text-[11px] uppercase tracking-widest font-bold hover:text-gold transition-colors">Membership</Link>
           </div>
 
           {/* Search bar inside header */}
@@ -147,6 +150,16 @@ const Navbar = () => {
             >
               {isDark ? <FiSun size={20} /> : <FiMoon size={20} />}
             </button>
+
+            {/* Notifications Icon */}
+            {userInfo && (
+              <button aria-label="Notifications" className="relative hover:text-gold transition-colors cursor-pointer">
+                <FiBell size={20} />
+                <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[8px] font-bold rounded-full h-4 w-4 flex items-center justify-center border border-[var(--card-bg)]">
+                  3
+                </span>
+              </button>
+            )}
 
             {/* Wishlist Link */}
             <Link to="/wishlist" className="relative hover:text-gold transition-colors" aria-label="Wishlist">

@@ -25,6 +25,9 @@ const Shop = () => {
   const [maxPrice, setMaxPrice] = useState(1000);
   const [selectedColor, setSelectedColor] = useState('All');
   const [selectedFabric, setSelectedFabric] = useState('All');
+  const [selectedOccasion, setSelectedOccasion] = useState('All');
+  const [selectedStyle, setSelectedStyle] = useState('All');
+  const [selectedBrand, setSelectedBrand] = useState('All');
   const [selectedSize, setSelectedSize] = useState('All');
   const [sortOption, setSortOption] = useState('Latest');
 
@@ -84,6 +87,18 @@ const Shop = () => {
       result = result.filter(p => p.description?.toLowerCase().includes(selectedFabric.toLowerCase()) || p.name?.toLowerCase().includes(selectedFabric.toLowerCase()));
     }
 
+    if (selectedOccasion !== 'All') {
+      result = result.filter(p => p.description?.toLowerCase().includes(selectedOccasion.toLowerCase()) || p.name?.toLowerCase().includes(selectedOccasion.toLowerCase()));
+    }
+
+    if (selectedStyle !== 'All') {
+      result = result.filter(p => p.description?.toLowerCase().includes(selectedStyle.toLowerCase()) || p.name?.toLowerCase().includes(selectedStyle.toLowerCase()));
+    }
+
+    if (selectedBrand !== 'All') {
+      result = result.filter(p => p.description?.toLowerCase().includes(selectedBrand.toLowerCase()) || p.name?.toLowerCase().includes(selectedBrand.toLowerCase()));
+    }
+
     // Size Filter
     if (selectedSize !== 'All') {
       result = result.filter(p => p.sizes?.includes(selectedSize));
@@ -100,7 +115,7 @@ const Shop = () => {
 
     setFilteredProducts(result);
     setCurrentPage(1); // Reset page on filter change
-  }, [products, searchQuery, selectedCategory, maxPrice, selectedColor, selectedFabric, selectedSize, sortOption]);
+  }, [products, searchQuery, selectedCategory, maxPrice, selectedColor, selectedFabric, selectedOccasion, selectedStyle, selectedBrand, selectedSize, sortOption]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
@@ -119,6 +134,9 @@ const Shop = () => {
   ];
 
   const fabricsList = ['All', 'Silk', 'Linen', 'Cotton', 'Velvet', 'Wool'];
+  const occasionsList = ['All', 'Wedding', 'Party', 'Casual', 'Office'];
+  const stylesList = ['All', 'Modern', 'Classic', 'Vintage', 'Bohemian'];
+  const brandsList = ['All', 'Elegance', 'Boutique', 'Couture'];
   const sizesList = ['All', 'S', 'M', 'L', 'XL'];
 
   const handleWishlistToggle = (e, product) => {
@@ -263,6 +281,48 @@ const Shop = () => {
               >
                 {fabricsList.map((fab, idx) => (
                   <option key={idx} value={fab}>{fab}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Occasion */}
+            <div>
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-gold mb-2.5">Occasion</h3>
+              <select
+                value={selectedOccasion}
+                onChange={(e) => setSelectedOccasion(e.target.value)}
+                className="w-full p-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
+              >
+                {occasionsList.map((occ, idx) => (
+                  <option key={idx} value={occ}>{occ}</option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Style */}
+            <div>
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-gold mb-2.5">Style</h3>
+              <select
+                value={selectedStyle}
+                onChange={(e) => setSelectedStyle(e.target.value)}
+                className="w-full p-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
+              >
+                {stylesList.map((stl, idx) => (
+                  <option key={idx} value={stl}>{stl}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Brand */}
+            <div>
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-gold mb-2.5">Brand</h3>
+              <select
+                value={selectedBrand}
+                onChange={(e) => setSelectedBrand(e.target.value)}
+                className="w-full p-2 bg-transparent border border-[var(--border-color)] text-xs rounded outline-none focus:border-gold cursor-pointer"
+              >
+                {brandsList.map((brnd, idx) => (
+                  <option key={idx} value={brnd}>{brnd}</option>
                 ))}
               </select>
             </div>

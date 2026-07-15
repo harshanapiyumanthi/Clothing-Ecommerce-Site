@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiUser, FiPackage, FiMapPin, FiPhone, FiMail, FiCalendar } from 'react-icons/fi';
+import { FiUser, FiPackage, FiMapPin, FiPhone, FiMail, FiCalendar, FiStar, FiRotateCcw, FiBell } from 'react-icons/fi';
 import Breadcrumb from '../components/Breadcrumb';
 
 const UserProfile = () => {
@@ -197,13 +197,43 @@ const UserProfile = () => {
               >
                 <FiPackage size={14} /> Order History
               </button>
+              <button
+                onClick={() => setActiveTab('rewards')}
+                className={`flex-1 lg:w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded transition-colors cursor-pointer ${
+                  activeTab === 'rewards'
+                    ? 'bg-gold text-white shadow-sm shadow-gold/25'
+                    : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-[var(--text-color)]'
+                }`}
+              >
+                <FiStar size={14} /> Reward Points
+              </button>
+              <button
+                onClick={() => setActiveTab('returns')}
+                className={`flex-1 lg:w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded transition-colors cursor-pointer ${
+                  activeTab === 'returns'
+                    ? 'bg-gold text-white shadow-sm shadow-gold/25'
+                    : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-[var(--text-color)]'
+                }`}
+              >
+                <FiRotateCcw size={14} /> Returns
+              </button>
+              <button
+                onClick={() => setActiveTab('notifications')}
+                className={`flex-1 lg:w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded transition-colors cursor-pointer ${
+                  activeTab === 'notifications'
+                    ? 'bg-gold text-white shadow-sm shadow-gold/25'
+                    : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-[var(--text-color)]'
+                }`}
+              >
+                <FiBell size={14} /> Notifications
+              </button>
             </nav>
           </div>
         </aside>
 
         {/* Content Details */}
         <main className="flex-grow">
-          {activeTab === 'profile' ? (
+          {activeTab === 'profile' && (
             <div className="bg-white dark:bg-gray-900 border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
               <div className="border-b border-[var(--border-color)] pb-3">
                 <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">
@@ -284,7 +314,9 @@ const UserProfile = () => {
                 </div>
               </form>
             </div>
-          ) : (
+          )}
+          
+          {activeTab === 'orders' && (
             <div className="bg-white dark:bg-gray-900 border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
               <div className="border-b border-[var(--border-color)] pb-3">
                 <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">
@@ -374,6 +406,52 @@ const UserProfile = () => {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'rewards' && (
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
+              <div className="border-b border-[var(--border-color)] pb-3">
+                <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">Reward Points</h2>
+              </div>
+              <div className="flex flex-col items-center justify-center space-y-4 py-8 text-center">
+                <div className="w-20 h-20 bg-gold/10 rounded-full flex items-center justify-center text-gold">
+                  <FiStar size={36} />
+                </div>
+                <div>
+                  <h3 className="text-3xl font-extrabold font-sans text-gold">1,250 <span className="text-sm text-gray-500">pts</span></h3>
+                  <p className="text-xs text-gray-400 uppercase font-bold tracking-widest mt-2">Available Balance</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'returns' && (
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
+              <div className="border-b border-[var(--border-color)] pb-3">
+                <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">Return Requests</h2>
+              </div>
+              <div className="text-center py-12 text-gray-400">
+                <FiRotateCcw size={36} className="mx-auto text-gray-300 mb-2 stroke-1" />
+                <p className="text-xs">No return requests active.</p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'notifications' && (
+            <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
+              <div className="border-b border-[var(--border-color)] pb-3">
+                <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">Notifications</h2>
+              </div>
+              <div className="space-y-4">
+                <div className="p-4 bg-gold/5 border border-gold/20 rounded flex items-start gap-3">
+                  <FiBell className="text-gold mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-bold text-[var(--text-color)]">Welcome to Premium</h4>
+                    <p className="text-[10px] text-gray-500 mt-1">Your premium membership is active. Visit the Dream Dress Studio.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </main>

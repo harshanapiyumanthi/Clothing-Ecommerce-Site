@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { FiArrowRight, FiMail, FiCheck, FiHeart, FiEye, FiMessageCircle, FiClock, FiCopy } from 'react-icons/fi';
+import { FiArrowRight, FiMail, FiCheck, FiHeart, FiEye, FiMessageCircle, FiClock, FiCopy, FiStar, FiPlus } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 
 const Home = () => {
@@ -90,6 +90,12 @@ const Home = () => {
     { id: 4, likes: '1.2k', comments: 32, image: 'https://images.unsplash.com/photo-1515347619362-7104b2b4bc66?q=80&w=400&auto=format&fit=crop' },
     { id: 5, likes: '4.0k', comments: 154, image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?q=80&w=400&auto=format&fit=crop' },
     { id: 6, likes: '2.9k', comments: 92, image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?q=80&w=400&auto=format&fit=crop' },
+  ];
+
+  const testimonials = [
+    { id: 1, name: 'Sarah L.', rating: 5, comment: 'The Dream Dress Studio made my wedding gown exactly how I envisioned. Truly premium service!' },
+    { id: 2, name: 'Maya T.', rating: 5, comment: 'Elegance Fashion never disappoints. The fabric quality is international standard.' },
+    { id: 3, name: 'Jessica R.', rating: 5, comment: 'Fast delivery, beautiful packaging, and the "Complete Your Look" suggestions saved my party outfit.' },
   ];
 
   // Helper format countdown double digit
@@ -374,6 +380,98 @@ const Home = () => {
           </div>
         </section>
       )}
+
+      {/* Dream Dress Studio Ad */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative h-[60vh] sm:h-[70vh] flex items-center justify-center bg-gray-900 overflow-hidden border border-gold/30 shadow-2xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent z-10"></div>
+          <img 
+            src="https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?q=80&w=2071&auto=format&fit=crop" 
+            alt="Dream Dress Studio Preview" 
+            className="absolute inset-0 w-full h-full object-cover scale-105"
+          />
+          <div className="relative z-20 text-white p-8 sm:p-16 max-w-2xl w-full mr-auto">
+            <span className="bg-gold text-white text-[9px] font-bold tracking-widest px-3.5 py-1 rounded-sm uppercase mb-4 inline-block">
+              Premium Exclusive
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-widest uppercase font-sans mb-4 text-gold">
+              Dream Dress Studio
+            </h2>
+            <p className="text-sm font-light tracking-wider leading-relaxed opacity-90 mb-8 max-w-md">
+              Unlock the ultimate bespoke experience. Become a Premium Member to customize fabrics, necklines, sleeves, and more, tailored exclusively to your unique measurements.
+            </p>
+            <div className="flex gap-4">
+              <Link to="/studio" className="inline-block bg-white text-black px-8 py-3 uppercase tracking-[0.2em] text-[10px] font-bold hover:bg-gold hover:text-white transition-all shadow-lg">
+                Enter Studio
+              </Link>
+              <Link to="/profile?tab=membership" className="inline-block border border-white/50 text-white px-8 py-3 uppercase tracking-[0.2em] text-[10px] font-bold hover:border-gold hover:text-gold transition-all">
+                Upgrade Now
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Complete Your Look Showcase */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+        <div className="text-center space-y-2">
+          <h2 className="text-xl font-bold uppercase tracking-widest text-[var(--text-color)]">
+            Complete Your Look
+          </h2>
+          <div className="h-0.5 w-16 bg-gold mx-auto"></div>
+          <p className="text-[11px] text-gray-400 tracking-wider max-w-xl mx-auto">Our stylists have curated the perfect pairings. Match this week's trending gown with our finest handcrafted accessories.</p>
+        </div>
+
+        <div className="bg-gray-50/50 dark:bg-[#111] border border-[var(--border-color)] p-6 sm:p-10 flex flex-col md:flex-row gap-8 items-center justify-center">
+          <div className="relative w-full md:w-1/3">
+            <div className="absolute -top-3 -left-3 bg-gold text-white text-[9px] font-bold tracking-widest px-3 py-1 z-10 uppercase">Main Piece</div>
+            <img src={products[0]?.image || 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?q=80'} alt="Main dress" className="w-full h-80 object-cover border border-gold/30 shadow-md" />
+            <h3 className="mt-4 font-bold text-sm uppercase tracking-widest text-center">{products[0]?.name || 'Silk Evening Gown'}</h3>
+          </div>
+          
+          <div className="hidden md:flex text-gold opacity-50">
+            <FiPlus size={30} />
+          </div>
+
+          <div className="w-full md:w-2/3 grid grid-cols-2 gap-4">
+            {products.slice(1, 5).map((item, i) => (
+              <Link to={`/product/${item.id}`} key={i} className="group border border-[var(--border-color)] bg-[var(--card-bg)] p-3 flex flex-col sm:flex-row gap-4 items-center hover:border-gold transition-colors">
+                <img src={item.image} alt={item.name} className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-sm group-hover:scale-105 transition-transform" />
+                <div className="text-center sm:text-left">
+                  <h4 className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider line-clamp-2">{item.name}</h4>
+                  <p className="text-xs text-gold font-bold font-sans mt-1">${item.price}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Customer Testimonials */}
+      <section className="bg-gold/5 border-y border-gold/15 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+          <div className="text-center space-y-2">
+            <h2 className="text-xl font-bold uppercase tracking-widest text-[var(--text-color)]">
+              Client Experiences
+            </h2>
+            <div className="h-0.5 w-16 bg-gold mx-auto"></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {testimonials.map(test => (
+              <div key={test.id} className="bg-[var(--card-bg)] border border-[var(--border-color)] p-8 text-center space-y-4 hover:border-gold/40 transition-colors shadow-sm">
+                <div className="flex justify-center text-gold gap-1">
+                  {[...Array(test.rating)].map((_, i) => <FiStar key={i} fill="currentColor" size={14} />)}
+                </div>
+                <p className="text-xs text-gray-500 italic leading-relaxed font-serif">"{test.comment}"</p>
+                <div className="pt-4 border-t border-[var(--border-color)]">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-color)]">{test.name}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Instagram Gallery Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
