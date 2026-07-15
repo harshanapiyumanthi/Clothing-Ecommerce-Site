@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { FiShoppingBag, FiUser, FiMenu, FiLogOut, FiSun, FiMoon, FiSearch } from 'react-icons/fi';
+import { FiShoppingBag, FiUser, FiUserPlus, FiMenu, FiLogOut, FiSun, FiMoon, FiSearch } from 'react-icons/fi';
 import { logout } from '../redux/slices/authSlice';
 
 const Navbar = () => {
@@ -174,9 +174,14 @@ const Navbar = () => {
                 </div>
               </div>
             ) : (
-              <Link to="/admin" className="hover:text-gold transition-colors" aria-label="Sign in dashboard">
-                <FiUser size={20} />
-              </Link>
+              <div className="flex items-center space-x-4">
+                <Link to="/login" className="hover:text-gold transition-colors flex items-center gap-1.5" title="Login" aria-label="Login">
+                  <FiUser size={20} />
+                </Link>
+                <Link to="/register" className="hover:text-gold transition-colors flex items-center gap-1.5" title="Register" aria-label="Register">
+                  <FiUserPlus size={20} />
+                </Link>
+              </div>
             )}
 
             <button className="md:hidden" aria-label="Open navigation menu">

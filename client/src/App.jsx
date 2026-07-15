@@ -7,6 +7,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import MainLayout from './layouts/MainLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import CookieConsent from './components/CookieConsent';
+import ProtectedRoute from './components/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 
 // Lazy Loaded Pages
 const Home = lazy(() => import('./pages/Home'));
@@ -16,6 +18,10 @@ const Cart = lazy(() => import('./pages/Cart'));
 const Checkout = lazy(() => import('./pages/Checkout'));
 const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Info Pages
@@ -37,6 +43,7 @@ function App() {
     <ErrorBoundary>
       <ToastContainer position="top-right" autoClose={3000} theme="colored" />
       <Suspense fallback={<PageLoader />}>
+        <ScrollToTop />
         <Routes>
           {/* Main Layout Routes */}
           <Route element={<MainLayout />}>
@@ -44,17 +51,27 @@ function App() {
             <Route path="/shop" element={<Shop />} />
             <Route path="/product/:id" element={<ProductDetails />} />
             <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/about" element={<AboutUs />} />
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsConditions />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+
+            {/* Protected Customer Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/order-success" element={<OrderSuccess />} />
+            </Route>
           </Route>
 
-          {/* Admin Dashboard Routes */}
-          <Route path="/admin" element={<AdminDashboard />} />
+          {/* Protected Admin Routes */}
+          <Route element={<ProtectedRoute isAdmin={true} />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
 
           {/* 404 */}
           <Route path="*" element={<NotFound />} />

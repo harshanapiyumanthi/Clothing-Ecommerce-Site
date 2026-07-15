@@ -18,6 +18,12 @@ const AdminLayout = ({ children, activeTab, setActiveTab }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!userInfo || userInfo.role !== 'admin') {
+      navigate('/login?redirect=admin');
+    }
+  }, [userInfo, navigate]);
+
+  useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
