@@ -5,9 +5,9 @@ const Coupon = require('../models/Coupon');
 // @route   POST /api/coupons
 // @access  Private/Admin
 const createCoupon = asyncHandler(async (req, res) => {
-    const { code, discountType, discountValue, minOrderAmount, maxUsage, expiresAt, isActive } = req.body;
+    const { code, discountType, couponType, discountValue, minOrderAmount, maxUsage, expiresAt, memberOnly, membershipRequired, requiredPoints, isActive } = req.body;
 
-    if (!code || !discountValue || !expiresAt) {
+    if (!code || discountValue === undefined || !expiresAt) {
         res.status(400);
         throw new Error('Code, discountValue, and expiresAt are required');
     }
@@ -23,10 +23,14 @@ const createCoupon = asyncHandler(async (req, res) => {
     const coupon = await Coupon.create({
         code: uppercaseCode,
         discountType: discountType || 'percentage',
+        couponType: couponType || discountType || 'percentage',
         discountValue,
         minOrderAmount: minOrderAmount || 0,
         maxUsage: maxUsage || 100,
         expiresAt,
+        memberOnly: memberOnly !== undefined ? memberOnly : false,
+        membershipRequired: membershipRequired || 'All',
+        requiredPoints: requiredPoints || 0,
         isActive: isActive !== undefined ? isActive : true
     });
 
@@ -81,7 +85,7 @@ const updateCoupon = asyncHandler(async (req, res) => {
         throw new Error('Coupon not found');
     }
 
-    const { code, discountType, discountValue, minOrderAmount, maxUsage, expiresAt, isActive } = req.body;
+    const { code, discountType, couponType, discountValue, minOrderAmount, maxUsage, expiresAt, memberOnly, membershipRequired, requiredPoints, isActive } = req.body;
 
     if (code) {
         const uppercaseCode = code.toUpperCase();
@@ -94,10 +98,14 @@ const updateCoupon = asyncHandler(async (req, res) => {
     }
 
     coupon.discountType = discountType !== undefined ? discountType : coupon.discountType;
+    coupon.couponType = couponType !== undefined ? couponType : (discountType !== undefined ? discountType : coupon.couponType);
     coupon.discountValue = discountValue !== undefined ? discountValue : coupon.discountValue;
     coupon.minOrderAmount = minOrderAmount !== undefined ? minOrderAmount : coupon.minOrderAmount;
     coupon.maxUsage = maxUsage !== undefined ? maxUsage : coupon.maxUsage;
     coupon.expiresAt = expiresAt !== undefined ? expiresAt : coupon.expiresAt;
+    coupon.memberOnly = memberOnly !== undefined ? memberOnly : coupon.memberOnly;
+    coupon.membershipRequired = membershipRequired !== undefined ? membershipRequired : coupon.membershipRequired;
+    coupon.requiredPoints = requiredPoints !== undefined ? requiredPoints : coupon.requiredPoints;
     coupon.isActive = isActive !== undefined ? isActive : coupon.isActive;
 
     const updatedCoupon = await coupon.save();

@@ -1,20 +1,28 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiShoppingCart, FiEye, FiCheck, FiSliders, FiX, FiPrinter, FiTruck, FiDollarSign } from 'react-icons/fi';
+import { FiSearch, FiShoppingCart, FiEye, FiCheck, FiSliders, FiX, FiPrinter, FiTruck, FiDollarSign, FiRefreshCw, FiAlertCircle, FiDownload } from 'react-icons/fi';
 import { adminApi } from '../../utils/adminApi';
 import { toast } from 'react-toastify';
 
 const STATUS_OPTIONS = [
   'Pending',
-  'Processing',
-  'Shipping',
+  'Confirmed',
+  'Preparing',
+  'Quality Check',
+  'Packed',
+  'Shipped',
   'Delivered',
   'Cancelled',
-  'Order Received',
-  'Design Review',
-  'Fabric Preparation',
-  'Tailoring',
-  'Quality Check',
-  'Ready For Delivery'
+  'Returned',
+  'Exchange Requested',
+  'Exchange Approved',
+  'Exchange Rejected'
+];
+
+const RETURN_STATUS_OPTIONS = [
+  'Returned',
+  'Exchange Requested',
+  'Exchange Approved',
+  'Exchange Rejected'
 ];
 
 const OrderManager = () => {
@@ -22,6 +30,10 @@ const OrderManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [loading, setLoading] = useState(true);
+  
+  // Tab State: 'orders' or 'returns'
+  const [activeTab, setActiveTab] = useState('orders');
+  const [returnsFilter, setReturnsFilter] = useState('All');
 
   // Detail Modal / Drawer State
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -52,7 +64,7 @@ const OrderManager = () => {
   };
 
   const handleUpdateOrder = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     try {
       await adminApi.saveOrderStatus(selectedOrder.id, editStatus, trackingNum);
       toast.success('Order updated successfully');
@@ -63,24 +75,72 @@ const OrderManager = () => {
     }
   };
 
+  const handleReturnAction = async (orderId, newStatus, reason = '') => {
+    try {
+      await adminApi.saveOrderStatus(orderId, newStatus, '');
+      toast.success(`Return/Exchange status updated to ${newStatus}`);
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder({ ...selectedOrder, orderStatus: newStatus });
+        setEditStatus(newStatus);
+      }
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to update return request');
+    }
+  };
+
+  const downloadReturnsReport = () => {
+    const returnOrders = orders.filter(o => 
+      ['Returned', 'Exchange Requested', 'Exchange Approved', 'Exchange Rejected'].includes(o.orderStatus)
+    );
+
+    if (returnOrders.length === 0) {
+      toast.info('No return or exchange records found to export');
+      return;
+    }
+
+    let csvContent = 'Order ID,Customer Name,Customer Email,Total Price,Status,Date\n';
+    returnOrders.forEach(ord => {
+      const orderId = ord.id;
+      const custName = ord.user?.name || 'Guest';
+      const custEmail = ord.user?.email || 'N/A';
+      const total = ord.totalPrice;
+      const status = ord.orderStatus;
+      const date = new Date(ord.createdAt).toLocaleDateString();
+
+      csvContent += `"${orderId}","${custName}","${custEmail}",${total},"${status}","${date}"\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'returns-exchange-report.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Pending':
-      case 'Order Received':
         return 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-900/55';
-      case 'Processing':
-      case 'Design Review':
-      case 'Fabric Preparation':
-      case 'Tailoring':
+      case 'Confirmed':
+      case 'Preparing':
+      case 'Packed':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-900/55';
-      case 'Shipping':
+      case 'Shipped':
       case 'Quality Check':
-      case 'Ready For Delivery':
         return 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-900/55';
       case 'Delivered':
         return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/55';
       case 'Cancelled':
+      case 'Exchange Rejected':
         return 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-900/55';
+      case 'Returned':
+      case 'Exchange Requested':
+      case 'Exchange Approved':
+        return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-400 border-cyan-200 dark:border-cyan-900/55';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700';
     }
@@ -189,9 +249,16 @@ const OrderManager = () => {
                           ord.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           ord.user.email.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'All' || ord.orderStatus === statusFilter;
-
-    return matchesSearch && matchesStatus;
+    if (activeTab === 'returns') {
+      const isReturnStatus = ['Returned', 'Exchange Requested', 'Exchange Approved', 'Exchange Rejected'].includes(ord.orderStatus);
+      if (!isReturnStatus) return false;
+      const matchesReturnsFilter = returnsFilter === 'All' || ord.orderStatus === returnsFilter;
+      return matchesSearch && matchesReturnsFilter;
+    } else {
+      // For general orders, exclude return/exchange unless explicitly filtered
+      const matchesStatus = statusFilter === 'All' || ord.orderStatus === statusFilter;
+      return matchesSearch && matchesStatus;
+    }
   });
 
   if (loading) {
@@ -205,45 +272,96 @@ const OrderManager = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       
+      {/* Top Tabs */}
+      <div className="flex border-b border-[var(--border-color)]">
+        <button
+          onClick={() => { setActiveTab('orders'); setStatusFilter('All'); }}
+          className={`px-6 py-3 font-semibold text-sm cursor-pointer border-b-2 transition-all ${activeTab === 'orders' ? 'border-gold text-gold font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+        >
+          📦 All Customer Orders
+        </button>
+        <button
+          onClick={() => { setActiveTab('returns'); setReturnsFilter('All'); }}
+          className={`px-6 py-3 font-semibold text-sm cursor-pointer border-b-2 transition-all flex items-center gap-2 ${activeTab === 'returns' ? 'border-gold text-gold font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+        >
+          🔄 Returns & Exchanges
+        </button>
+      </div>
+
       {/* Controls & Filter Tabs */}
       <div className="bg-[var(--card-bg)] p-4 rounded-xl border border-[var(--border-color)] space-y-4">
         
-        {/* Search */}
-        <div className="relative max-w-md">
-          <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-            <FiSearch size={18} />
-          </span>
-          <input
-            type="text"
-            placeholder="Search orders by ID, customer name, email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-sm bg-transparent border border-[var(--border-color)] rounded-lg focus:border-gold outline-none transition-colors"
-          />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          {/* Search */}
+          <div className="relative max-w-md w-full">
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+              <FiSearch size={18} />
+            </span>
+            <input
+              type="text"
+              placeholder="Search orders by ID, customer name, email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-transparent border border-[var(--border-color)] rounded-lg focus:border-gold outline-none transition-colors"
+            />
+          </div>
+
+          {activeTab === 'returns' && (
+            <button
+              onClick={downloadReturnsReport}
+              className="flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider text-gold border border-gold hover:bg-gold hover:text-white rounded-lg transition-all cursor-pointer w-full sm:w-auto justify-center"
+            >
+              <FiDownload size={14} /> Export Returns CSV
+            </button>
+          )}
         </div>
 
         {/* Status Tabs */}
-        <div className="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-3">
-          {['All', ...STATUS_OPTIONS].map((status) => {
-            const count = status === 'All' 
-              ? orders.length 
-              : orders.filter(o => o.orderStatus === status).length;
-            
-            return (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg border transition-all cursor-pointer ${
-                  statusFilter === status
-                    ? 'bg-gold text-white border-gold shadow-sm scale-105'
-                    : 'border-[var(--border-color)] hover:bg-gray-150 text-gray-500'
-                }`}
-              >
-                {status} ({count})
-              </button>
-            );
-          })}
-        </div>
+        {activeTab === 'orders' ? (
+          <div className="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-3">
+            {['All', ...STATUS_OPTIONS].map((status) => {
+              const count = status === 'All' 
+                ? orders.length 
+                : orders.filter(o => o.orderStatus === status).length;
+              
+              return (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg border transition-all cursor-pointer ${
+                    statusFilter === status
+                      ? 'bg-gold text-white border-gold shadow-sm scale-105'
+                      : 'border-[var(--border-color)] hover:bg-gray-150 text-gray-500'
+                  }`}
+                >
+                  {status} ({count})
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-3">
+            {['All', ...RETURN_STATUS_OPTIONS].map((status) => {
+              const count = status === 'All' 
+                ? orders.filter(o => RETURN_STATUS_OPTIONS.includes(o.orderStatus)).length 
+                : orders.filter(o => o.orderStatus === status).length;
+              
+              return (
+                <button
+                  key={status}
+                  onClick={() => setReturnsFilter(status)}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg border transition-all cursor-pointer ${
+                    returnsFilter === status
+                      ? 'bg-gold text-white border-gold shadow-sm scale-105'
+                      : 'border-[var(--border-color)] hover:bg-gray-150 text-gray-500'
+                  }`}
+                >
+                  {status} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
 
       </div>
 
@@ -482,6 +600,53 @@ const OrderManager = () => {
                         )}
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Return & Exchange Moderation Block */}
+              {['Returned', 'Exchange Requested', 'Exchange Approved', 'Exchange Rejected'].includes(selectedOrder.orderStatus) && (
+                <div className="border-t border-[var(--border-color)] pt-4 space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-gold flex items-center gap-1.5">
+                    <FiRefreshCw className="animate-spin-slow" /> Return & Exchange Moderation
+                  </h4>
+                  <p className="text-xs text-gray-500">
+                    This order is marked as <span className="font-bold text-gold uppercase">{selectedOrder.orderStatus}</span>. Process return or exchange request below:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleReturnAction(selectedOrder.id, 'Returned')}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold cursor-pointer transition-colors"
+                    >
+                      Approve Return
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleReturnAction(selectedOrder.id, 'Exchange Approved')}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold cursor-pointer transition-colors"
+                    >
+                      Approve Exchange
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleReturnAction(selectedOrder.id, 'Exchange Rejected')}
+                      className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-semibold cursor-pointer transition-colors"
+                    >
+                      Reject Request
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const info = prompt('Enter details of the requested information:');
+                        if (info) {
+                          toast.info(`Information request logged: "${info}"`);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded text-xs font-semibold cursor-pointer flex items-center gap-1 transition-colors"
+                    >
+                      <FiAlertCircle size={12} /> Request Info
+                    </button>
                   </div>
                 </div>
               )}

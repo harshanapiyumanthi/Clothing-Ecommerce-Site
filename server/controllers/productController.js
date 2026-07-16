@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Product = require('../models/Product');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinaryHelper');
+const logActivity = require('../utils/activityLogger');
 
 // Helper to build query filters
 const buildProductQuery = (queryParams) => {
@@ -99,6 +100,8 @@ const createProduct = asyncHandler(async (req, res) => {
         createdBy: req.user._id,
     });
 
+    await logActivity(req, 'Product Created', 'Product', product._id, `Created product "${product.name}" with price $${product.price}`);
+
     res.status(201).json({ success: true, product });
 });
 
@@ -113,6 +116,9 @@ const updateProduct = asyncHandler(async (req, res) => {
     }
 
     const { name, description, price, discountPrice, category, brand, sizes, colors, stock, isFeatured, isBestSeller, tags, recommendations } = req.body;
+
+    const oldPrice = product.price;
+    const priceChanged = price !== undefined && Number(price) !== oldPrice;
 
     product.name = name ?? product.name;
     product.description = description ?? product.description;
@@ -141,6 +147,13 @@ const updateProduct = asyncHandler(async (req, res) => {
     }
 
     const updated = await product.save();
+
+    if (priceChanged) {
+        await logActivity(req, 'Price Changed', 'Product', product._id, `Price of "${product.name}" changed from $${oldPrice} to $${product.price}`);
+    } else {
+        await logActivity(req, 'Product Updated', 'Product', product._id, `Updated details of "${product.name}"`);
+    }
+
     res.json({ success: true, product: updated });
 });
 
@@ -156,7 +169,12 @@ const deleteProduct = asyncHandler(async (req, res) => {
     for (const img of product.images) {
         await deleteFromCloudinary(img.public_id);
     }
+    const productName = product.name;
+    const productId = product._id;
     await product.deleteOne();
+
+    await logActivity(req, 'Product Deleted', 'Product', productId, `Deleted product "${productName}"`);
+
     res.json({ success: true, message: 'Product deleted' });
 });
 

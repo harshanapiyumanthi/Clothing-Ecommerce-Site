@@ -23,7 +23,7 @@ const CouponManager = () => {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
-    code: '', discountType: 'percentage', discountValue: 10,
+    code: '', discountType: 'percentage', couponType: 'percentage', discountValue: 10,
     minOrderAmount: 0, maxUsage: 100,
     expiresAt: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
     memberOnly: false, membershipRequired: 'All', isActive: true
@@ -43,10 +43,10 @@ const CouponManager = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ code: '', discountType: 'percentage', discountValue: 10, minOrderAmount: 0, maxUsage: 100, expiresAt: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0], memberOnly: false, membershipRequired: 'All', isActive: true });
+    setForm({ code: '', discountType: 'percentage', couponType: 'percentage', discountValue: 10, minOrderAmount: 0, maxUsage: 100, expiresAt: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0], memberOnly: false, membershipRequired: 'All', isActive: true });
     setShowModal(true);
   };
-  const openEdit = (c) => { setEditing(c); setForm({ code: c.code, discountType: c.discountType, discountValue: c.discountValue, minOrderAmount: c.minOrderAmount, maxUsage: c.maxUsage, expiresAt: c.expiresAt?.split('T')[0] || '', memberOnly: c.memberOnly, membershipRequired: c.membershipRequired || 'All', isActive: c.isActive }); setShowModal(true); };
+  const openEdit = (c) => { setEditing(c); setForm({ code: c.code, discountType: c.discountType, couponType: c.couponType || c.discountType || 'percentage', discountValue: c.discountValue, minOrderAmount: c.minOrderAmount, maxUsage: c.maxUsage, expiresAt: c.expiresAt?.split('T')[0] || '', memberOnly: c.memberOnly, membershipRequired: c.membershipRequired || 'All', isActive: c.isActive }); setShowModal(true); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -189,11 +189,23 @@ const CouponManager = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Discount Type</label>
-                  <select value={form.discountType} onChange={e => setForm(f => ({...f, discountType: e.target.value}))} className="w-full px-3 py-2.5 border border-[var(--border-color)] bg-[var(--card-bg)] rounded-lg outline-none focus:border-gold text-sm cursor-pointer">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Coupon Type</label>
+                  <select
+                    value={form.couponType || form.discountType}
+                    onChange={e => {
+                      const val = e.target.value;
+                      const distType = ['percentage', 'fixed', 'free_shipping'].includes(val) ? val : 'percentage';
+                      setForm(f => ({ ...f, couponType: val, discountType: distType }));
+                    }}
+                    className="w-full px-3 py-2.5 border border-[var(--border-color)] bg-[var(--card-bg)] rounded-lg outline-none focus:border-gold text-sm cursor-pointer"
+                  >
                     <option value="percentage">Percentage (%)</option>
                     <option value="fixed">Fixed Amount ($)</option>
                     <option value="free_shipping">Free Shipping</option>
+                    <option value="buy_x_get_y">Buy X Get Y</option>
+                    <option value="festival">Festival Offer</option>
+                    <option value="member_only">Member Exclusive</option>
+                    <option value="limited">Limited Edition</option>
                   </select>
                 </div>
                 <div className="space-y-1.5">

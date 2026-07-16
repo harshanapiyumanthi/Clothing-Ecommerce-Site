@@ -5,6 +5,7 @@ const Product = require('../models/Product');
 const Coupon = require('../models/Coupon');
 const Payment = require('../models/Payment');
 const stripe = require('../config/stripe');
+const logActivity = require('../utils/activityLogger');
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -131,13 +132,16 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
         throw new Error('Order not found');
     }
 
-    order.orderStatus = req.body.orderStatus ?? order.orderStatus;
+    const oldStatus = order.orderStatus;
+    const newStatus = req.body.orderStatus ?? order.orderStatus;
+
+    order.orderStatus = newStatus;
     if (req.body.trackingNumber) order.trackingNumber = req.body.trackingNumber;
-    if (req.body.orderStatus === 'Delivered') {
+    if (newStatus === 'Delivered') {
         order.isDelivered = true;
         order.deliveredAt = Date.now();
     }
-    if (req.body.orderStatus === 'Cancelled') {
+    if (newStatus === 'Cancelled') {
         // Restore stock
         for (const item of order.orderItems) {
             await Product.findByIdAndUpdate(item.product, {
@@ -147,6 +151,13 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     }
 
     const updated = await order.save();
+
+    if (newStatus === 'Cancelled' && oldStatus !== 'Cancelled') {
+        await logActivity(req, 'Order Cancelled', 'Order', order._id, `Order #${order._id} cancelled`);
+    } else {
+        await logActivity(req, 'Order Updated', 'Order', order._id, `Changed status of order #${order._id} from "${oldStatus}" to "${newStatus}"`);
+    }
+
     res.json({ success: true, order: updated });
 });
 
