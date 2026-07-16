@@ -14,6 +14,38 @@ const DreamDressStudio = () => {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
+
+  // Load draft from local storage on mount
+  useEffect(() => {
+    const draft = localStorage.getItem('dream_dress_draft');
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft);
+        if (parsed.selectedOptions) setSelectedOptions(parsed.selectedOptions);
+        if (parsed.description) setDescription(parsed.description);
+        if (parsed.timestamp) setLastSaved(new Date(parsed.timestamp));
+      } catch (e) {
+        console.error('Failed to parse draft', e);
+      }
+    }
+  }, []);
+
+  // Auto-save debounced effect
+  useEffect(() => {
+    if (Object.keys(selectedOptions).length > 0 || description) {
+      const timeoutId = setTimeout(() => {
+        const draft = {
+          selectedOptions,
+          description,
+          timestamp: new Date().toISOString()
+        };
+        localStorage.setItem('dream_dress_draft', JSON.stringify(draft));
+        setLastSaved(new Date());
+      }, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [selectedOptions, description]);
 
   useEffect(() => {
     if (!userInfo) {
@@ -69,6 +101,7 @@ const DreamDressStudio = () => {
         headers: { Authorization: `Bearer ${userInfo.token}` }
       });
       toast.success('Your Dream Dress order has been received!');
+      localStorage.removeItem('dream_dress_draft'); // Clear draft on success
       navigate('/profile');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Submission failed');
@@ -155,6 +188,11 @@ const DreamDressStudio = () => {
             >
               {submitting ? 'Submitting Design...' : 'Submit Design to Tailors'}
             </button>
+            {lastSaved && (
+              <p className="text-[10px] text-gray-500 mt-3 font-semibold uppercase tracking-wider">
+                Draft securely auto-saved at {lastSaved.toLocaleTimeString()}
+              </p>
+            )}
           </div>
         </form>
       )}

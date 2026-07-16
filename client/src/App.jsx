@@ -35,6 +35,8 @@ const ContactUs = lazy(() => import('./pages/ContactUs'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsConditions = lazy(() => import('./pages/TermsConditions'));
 
+import NetworkStatusHandler from './components/common/NetworkStatusHandler';
+
 // Luxury loading spinner fallback
 const PageLoader = () => (
   <div className="min-h-[70vh] flex items-center justify-center">
@@ -45,6 +47,7 @@ const PageLoader = () => (
 function App() {
   return (
     <ErrorBoundary>
+      <NetworkStatusHandler />
       <ToastContainer position="top-right" autoClose={3000} theme="colored" />
       <Suspense fallback={<PageLoader />}>
         <ScrollToTop />

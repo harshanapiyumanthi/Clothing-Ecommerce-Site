@@ -153,12 +153,40 @@ const Navbar = () => {
 
             {/* Notifications Icon */}
             {userInfo && (
-              <button aria-label="Notifications" className="relative hover:text-gold transition-colors cursor-pointer">
-                <FiBell size={20} />
-                <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[8px] font-bold rounded-full h-4 w-4 flex items-center justify-center border border-[var(--card-bg)]">
-                  3
-                </span>
-              </button>
+              <div className="relative group cursor-pointer flex items-center h-full">
+                <div className="py-2 relative hover:text-gold transition-colors">
+                  <FiBell size={20} />
+                  <span className="absolute top-1 -right-1.5 bg-rose-500 text-white text-[8px] font-bold rounded-full h-4 w-4 flex items-center justify-center border border-[var(--card-bg)] shadow-sm">
+                    3
+                  </span>
+                </div>
+                <div className="absolute right-0 top-full mt-1 w-72 glass rounded-xl shadow-xl py-1 hidden group-hover:block border border-[var(--border-color)] overflow-hidden">
+                  <div className="px-4 py-3 text-[10px] text-gray-500 uppercase tracking-widest border-b border-[var(--border-color)] flex justify-between bg-gray-50/50 dark:bg-gray-900/50">
+                    <span className="font-bold">Recent Alerts</span>
+                    <button className="text-gold hover:underline">Mark read</button>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    <div className="px-4 py-3 border-b border-[var(--border-color)] hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+                      <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Order Dispatched</p>
+                      <p className="text-[10px] text-gray-500 mt-1">Your Premium order #1029 is out for delivery.</p>
+                      <p className="text-[9px] text-gold mt-1.5 font-bold">2 hours ago</p>
+                    </div>
+                    <div className="px-4 py-3 border-b border-[var(--border-color)] hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+                      <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Flash Sale Access</p>
+                      <p className="text-[10px] text-gray-500 mt-1">Use code ELEGANCE10 for VIP access to accessories.</p>
+                      <p className="text-[9px] text-gray-400 mt-1.5 font-bold">1 day ago</p>
+                    </div>
+                    <div className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+                      <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Security Notice</p>
+                      <p className="text-[10px] text-gray-500 mt-1">New sign-in detected on Chrome (Windows).</p>
+                      <p className="text-[9px] text-gray-400 mt-1.5 font-bold">2 days ago</p>
+                    </div>
+                  </div>
+                  <div className="px-4 py-2 border-t border-[var(--border-color)] text-center bg-gray-50/50 dark:bg-gray-900/50">
+                    <Link to="/profile" className="text-[10px] text-gold uppercase tracking-widest font-bold hover:underline">Notification Center</Link>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Wishlist Link */}

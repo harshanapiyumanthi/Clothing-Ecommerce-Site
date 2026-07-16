@@ -6,27 +6,27 @@ import { clearCart } from '../redux/slices/cartSlice';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import Input from '../components/common/Input';
-import Button from '../components/common/Button';
-import { FiCheck, FiChevronRight, FiLock, FiTruck, FiMapPin, FiCreditCard } from 'react-icons/fi';
+import { FiCheck, FiChevronRight, FiLock, FiTruck, FiMapPin, FiCreditCard, FiAlertTriangle, FiRefreshCw, FiShoppingBag, FiShield } from 'react-icons/fi';
 
 const Checkout = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('Stripe');
   const [shippingMethod, setShippingMethod] = useState('Standard');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState('idle'); // idle, processing, failed
+  
   const { cartItems } = useSelector((state) => state.cart);
   const { userInfo } = useSelector((state) => state.auth || { userInfo: JSON.parse(localStorage.getItem('userInfo')) });
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Redirect if cart empty
   useEffect(() => {
-    if (cartItems.length === 0) {
+    if (cartItems.length === 0 && paymentStatus !== 'failed') {
       toast.info('Your cart is empty. Redirecting to shop.');
       navigate('/shop');
     }
-  }, [cartItems, navigate]);
+  }, [cartItems, navigate, paymentStatus]);
 
   const { register, handleSubmit, trigger, getValues, formState: { errors } } = useForm({
     defaultValues: {
@@ -44,7 +44,6 @@ const Checkout = () => {
   const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
   const discount = couponData.discount || 0;
   
-  // Dynamic shipping fee based on method
   let shippingFee = subtotal > 0 ? 15 : 0;
   if (shippingMethod === 'Express') shippingFee = 35;
   if (shippingMethod === 'Pickup') shippingFee = 0;
@@ -70,7 +69,7 @@ const Checkout = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const onSubmit = async () => {
+  const processPayment = async () => {
     const data = getValues();
     if (cartItems.length === 0) {
       toast.error('Your cart is empty');
@@ -78,6 +77,8 @@ const Checkout = () => {
     }
 
     setIsSubmitting(true);
+    setPaymentStatus('processing');
+
     try {
       const config = {
         headers: {
@@ -112,25 +113,96 @@ const Checkout = () => {
         shippingFee
       };
 
+      // 1. Create order
       const res = await axios.post('http://localhost:5000/api/orders', orderData, config);
 
       if (res.data.success) {
-        localStorage.removeItem('checkout_coupon');
-        dispatch(clearCart());
-        navigate(`/order-success?orderId=${res.data.order._id}`);
+        
+        // 2. COD handles immediately
+        if (paymentMethod === 'COD') {
+          localStorage.removeItem('checkout_coupon');
+          dispatch(clearCart());
+          navigate(`/order-success?orderId=${res.data.order._id}`);
+          return;
+        }
+
+        // 3. Process payment intent (Strategy Factory routing on server)
+        try {
+          const intentRes = await axios.post('http://localhost:5000/api/payments/intent', {
+              amount: total,
+              orderId: res.data.order._id,
+              paymentMethod
+          }, config);
+          
+          // Simulated 3D Secure / Payment Gateway Verification Delay
+          await new Promise(resolve => setTimeout(resolve, 2500));
+          
+          const transactionId = intentRes.data.transactionId || intentRes.data.id || `mock_trx_${Date.now()}`;
+
+          // Verify transaction status
+          const verifyRes = await axios.get(`http://localhost:5000/api/payments/verify/${transactionId}?method=${paymentMethod}`, config);
+          
+          if (verifyRes.data.success || verifyRes.data.status === 'succeeded') {
+              localStorage.removeItem('checkout_coupon');
+              dispatch(clearCart());
+              navigate(`/order-success?orderId=${res.data.order._id}`);
+          } else {
+              setPaymentStatus('failed');
+              setIsSubmitting(false);
+          }
+        } catch (paymentError) {
+          console.error("Payment routing failed:", paymentError);
+          setPaymentStatus('failed');
+          setIsSubmitting(false);
+        }
       }
     } catch (error) {
       if (paymentMethod !== 'COD') {
-        toast.error("We couldn't complete your payment right now. Your cart has been saved. Please try again or use another payment method.", { autoClose: 6000 });
+        setPaymentStatus('failed');
       } else {
         toast.error(error.response?.data?.message || 'Failed to place order');
       }
-    } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (cartItems.length === 0) return null;
+  // Payment Failure Recovery Screen
+  if (paymentStatus === 'failed') {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-20 text-center animate-fade-in">
+        <div className="w-24 h-24 bg-red-100 dark:bg-red-950/40 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-red-200 dark:border-red-900">
+          <FiAlertTriangle className="text-red-500 text-4xl" />
+        </div>
+        <h2 className="text-3xl font-bold uppercase tracking-wider mb-4">Payment Declined</h2>
+        <p className="text-gray-500 mb-8 max-w-md mx-auto leading-relaxed">
+          We couldn't process your payment. This could be due to insufficient funds, an expired card, or network issues. Don't worry, your cart is securely saved.
+        </p>
+        
+        <div className="bg-gray-50 dark:bg-[#111] p-6 rounded-xl border border-gray-200 dark:border-gray-800 flex flex-col gap-4 mx-auto max-w-md shadow-sm">
+          <button 
+            onClick={() => { setPaymentStatus('idle'); setIsSubmitting(false); setCurrentStep(3); }}
+            className="w-full flex items-center justify-center gap-2 bg-gold text-white px-6 py-3.5 rounded font-bold uppercase tracking-widest hover:bg-black transition-colors"
+          >
+            <FiRefreshCw /> Retry Payment
+          </button>
+          
+          <button 
+            onClick={() => { setPaymentStatus('idle'); setPaymentMethod('COD'); setIsSubmitting(false); setCurrentStep(4); }}
+            className="w-full flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-700 px-6 py-3.5 rounded font-bold uppercase tracking-widest hover:border-gold hover:text-gold transition-colors"
+          >
+            <FiTruck /> Switch to Cash on Delivery
+          </button>
+          
+          <button 
+            onClick={() => navigate('/shop')}
+            className="w-full flex items-center justify-center gap-2 text-gray-500 hover:text-[var(--text-color)] px-6 py-2 uppercase font-bold text-xs tracking-wider transition-colors mt-2"
+          >
+            <FiShoppingBag /> Continue Shopping
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in bg-gray-50 dark:bg-gray-950 min-h-screen">
@@ -138,13 +210,12 @@ const Checkout = () => {
         <h1 className="text-3xl font-bold uppercase tracking-widest text-[var(--text-color)] flex items-center justify-center gap-3">
           <FiLock size={24} className="text-gold" /> Secure Checkout
         </h1>
-        <p className="text-xs text-gray-500 mt-2 uppercase tracking-wider">Complete your premium order</p>
+        <p className="text-xs text-gray-500 mt-2 uppercase tracking-wider">256-Bit Encrypted Secure Transaction</p>
       </div>
       
       {/* Step Indicator */}
       <div className="max-w-3xl mx-auto mb-12">
         <div className="flex items-center justify-between relative">
-          {/* Connecting Line */}
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-[2px] bg-gray-200 dark:bg-gray-800 -z-10"></div>
           <div 
             className="absolute left-0 top-1/2 -translate-y-1/2 h-[2px] bg-gold -z-10 transition-all duration-500" 
@@ -176,7 +247,7 @@ const Checkout = () => {
         
         {/* Main Content Area */}
         <div className="w-full lg:w-2/3">
-          <div className="bg-white dark:bg-gray-900 p-8 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm min-h-[400px]">
+          <div className="bg-white dark:bg-[#111] p-8 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm min-h-[400px]">
             
             <form id="checkout-form" onSubmit={(e) => e.preventDefault()}>
               
@@ -193,39 +264,12 @@ const Checkout = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <Input 
-                      placeholder="First Name" 
-                      {...register('firstName', { required: 'First name is required' })} 
-                      error={errors.firstName}
-                    />
-                    <Input 
-                      placeholder="Last Name" 
-                      {...register('lastName', { required: 'Last name is required' })} 
-                      error={errors.lastName}
-                    />
-                    <Input 
-                      placeholder="Address Line 1" 
-                      className="col-span-1 md:col-span-2"
-                      {...register('address', { required: 'Address is required' })} 
-                      error={errors.address}
-                    />
-                    <Input 
-                      placeholder="City" 
-                      {...register('city', { required: 'City is required' })} 
-                      error={errors.city}
-                    />
-                    <Input 
-                      placeholder="Postal Code" 
-                      {...register('postalCode', { required: 'Postal code is required' })} 
-                      error={errors.postalCode}
-                    />
-                    <Input 
-                      placeholder="Phone Number" 
-                      type="tel"
-                      className="col-span-1 md:col-span-2"
-                      {...register('phone', { required: 'Phone number is required' })} 
-                      error={errors.phone}
-                    />
+                    <Input placeholder="First Name" {...register('firstName', { required: 'First name is required' })} error={errors.firstName} />
+                    <Input placeholder="Last Name" {...register('lastName', { required: 'Last name is required' })} error={errors.lastName} />
+                    <Input placeholder="Address Line 1" className="col-span-1 md:col-span-2" {...register('address', { required: 'Address is required' })} error={errors.address} />
+                    <Input placeholder="City" {...register('city', { required: 'City is required' })} error={errors.city} />
+                    <Input placeholder="Postal Code" {...register('postalCode', { required: 'Postal code is required' })} error={errors.postalCode} />
+                    <Input placeholder="Phone Number" type="tel" className="col-span-1 md:col-span-2" {...register('phone', { required: 'Phone number is required' })} error={errors.phone} />
                   </div>
                 </div>
               )}
@@ -277,23 +321,46 @@ const Checkout = () => {
               {/* STEP 3: Payment */}
               {currentStep === 3 && (
                 <div className="animate-fade-in space-y-6">
-                  <div className="border-b border-gray-200 dark:border-gray-800 pb-4 mb-6">
+                  <div className="border-b border-gray-200 dark:border-gray-800 pb-4 mb-6 flex justify-between items-center">
                     <h2 className="text-xl font-bold uppercase tracking-wider text-[var(--text-color)]">3. Secure Payment</h2>
+                    <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500 text-xs font-bold uppercase tracking-wider">
+                      <FiShield /> Encrypted
+                    </div>
                   </div>
                   
                   <div className="space-y-4">
-                    <label className={`flex items-start gap-4 p-5 border rounded-xl cursor-pointer transition-all duration-300 ${paymentMethod === 'Stripe' ? 'border-gold bg-gold/5 shadow-md shadow-gold/10' : 'border-gray-200 dark:border-gray-800 hover:border-gold/50'}`}>
-                      <input type="radio" name="payment" value="Stripe" checked={paymentMethod === 'Stripe'} onChange={(e) => setPaymentMethod(e.target.value)} className="accent-gold w-5 h-5 mt-0.5" />
-                      <div>
-                        <span className="block font-bold text-sm tracking-wider uppercase mb-1">Credit/Debit Card</span>
-                        <p className="text-xs text-gray-500">Secure encrypted payment via Stripe (Visa, Mastercard, Amex).</p>
-                      </div>
-                    </label>
+                    {/* Stripe Card Payment */}
+                    <div className={`border rounded-xl transition-all duration-300 ${paymentMethod === 'Stripe' ? 'border-gold bg-gold/5 shadow-md shadow-gold/10' : 'border-gray-200 dark:border-gray-800 hover:border-gold/50'}`}>
+                      <label className="flex items-start gap-4 p-5 cursor-pointer">
+                        <input type="radio" name="payment" value="Stripe" checked={paymentMethod === 'Stripe'} onChange={(e) => setPaymentMethod(e.target.value)} className="accent-gold w-5 h-5 mt-0.5" />
+                        <div>
+                          <span className="block font-bold text-sm tracking-wider uppercase mb-1">Credit / Debit Card</span>
+                          <p className="text-xs text-gray-500">Secure encrypted payment via Stripe.</p>
+                        </div>
+                      </label>
+                      {/* Secure Card Visual Form (UI Only for realistic mockup) */}
+                      {paymentMethod === 'Stripe' && (
+                        <div className="px-5 pb-5 pt-2 border-t border-gold/20 animate-fade-in">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2 relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><FiCreditCard size={18} /></span>
+                              <input type="text" placeholder="Card Number (0000 0000 0000 0000)" className="w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none focus:border-gold transition-colors" />
+                            </div>
+                            <div>
+                              <input type="text" placeholder="MM/YY" className="w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg py-2.5 px-4 text-sm outline-none focus:border-gold transition-colors" />
+                            </div>
+                            <div>
+                              <input type="text" placeholder="CVC" className="w-full bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg py-2.5 px-4 text-sm outline-none focus:border-gold transition-colors" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
                     <label className={`flex items-start gap-4 p-5 border rounded-xl cursor-pointer transition-all duration-300 ${paymentMethod === 'Mintpay' ? 'border-gold bg-gold/5 shadow-md shadow-gold/10' : 'border-gray-200 dark:border-gray-800 hover:border-gold/50'}`}>
                       <input type="radio" name="payment" value="Mintpay" checked={paymentMethod === 'Mintpay'} onChange={(e) => setPaymentMethod(e.target.value)} className="accent-gold w-5 h-5 mt-0.5" />
                       <div>
-                        <span className="block font-bold text-sm tracking-wider uppercase mb-1">Mintpay</span>
+                        <span className="block font-bold text-sm tracking-wider uppercase mb-1">Mintpay BNPL</span>
                         <p className="text-xs text-gray-500">Buy Now, Pay Later in 3 interest-free installments.</p>
                       </div>
                     </label>
@@ -325,7 +392,7 @@ const Checkout = () => {
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-gray-50 dark:bg-gray-950 p-5 rounded-lg border border-gray-200 dark:border-gray-800 space-y-2">
+                    <div className="bg-gray-50 dark:bg-[#0a0a0a] p-5 rounded-lg border border-gray-200 dark:border-gray-800 space-y-2">
                       <div className="flex justify-between items-center mb-2">
                         <h3 className="font-bold text-xs uppercase tracking-widest text-gold">Delivery details</h3>
                         <button type="button" onClick={() => setCurrentStep(1)} className="text-[10px] text-gray-500 hover:text-gold uppercase font-bold tracking-wider underline">Edit</button>
@@ -337,7 +404,7 @@ const Checkout = () => {
                     </div>
 
                     <div className="space-y-6">
-                      <div className="bg-gray-50 dark:bg-gray-950 p-5 rounded-lg border border-gray-200 dark:border-gray-800 space-y-2">
+                      <div className="bg-gray-50 dark:bg-[#0a0a0a] p-5 rounded-lg border border-gray-200 dark:border-gray-800 space-y-2">
                         <div className="flex justify-between items-center mb-2">
                           <h3 className="font-bold text-xs uppercase tracking-widest text-gold">Shipping Method</h3>
                           <button type="button" onClick={() => setCurrentStep(2)} className="text-[10px] text-gray-500 hover:text-gold uppercase font-bold tracking-wider underline">Edit</button>
@@ -345,7 +412,7 @@ const Checkout = () => {
                         <p className="text-xs font-semibold">{shippingMethod} Delivery</p>
                       </div>
 
-                      <div className="bg-gray-50 dark:bg-gray-950 p-5 rounded-lg border border-gray-200 dark:border-gray-800 space-y-2">
+                      <div className="bg-gray-50 dark:bg-[#0a0a0a] p-5 rounded-lg border border-gray-200 dark:border-gray-800 space-y-2">
                         <div className="flex justify-between items-center mb-2">
                           <h3 className="font-bold text-xs uppercase tracking-widest text-gold">Payment Method</h3>
                           <button type="button" onClick={() => setCurrentStep(3)} className="text-[10px] text-gray-500 hover:text-gold uppercase font-bold tracking-wider underline">Edit</button>
@@ -366,7 +433,7 @@ const Checkout = () => {
 
             {/* Navigation Buttons */}
             <div className="flex items-center justify-between pt-8 mt-8 border-t border-gray-200 dark:border-gray-800">
-              {currentStep > 1 ? (
+              {currentStep > 1 && !isSubmitting ? (
                 <button 
                   type="button" 
                   onClick={handlePrevStep}
@@ -387,11 +454,19 @@ const Checkout = () => {
               ) : (
                 <button 
                   type="button" 
-                  onClick={onSubmit}
+                  onClick={processPayment}
                   disabled={isSubmitting}
-                  className="px-10 py-3 bg-gold text-white rounded shadow-lg shadow-gold/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-black transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="px-10 py-3 bg-gold text-white rounded shadow-lg shadow-gold/30 text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-black transition-all disabled:opacity-80 disabled:cursor-wait relative overflow-hidden"
                 >
-                  {isSubmitting ? 'Processing...' : 'Place Order Now'}
+                  {isSubmitting ? (
+                    <>
+                      <FiRefreshCw className="animate-spin" /> Verifying Transaction...
+                    </>
+                  ) : (
+                    <>
+                      <FiLock /> Pay ${total.toFixed(2)}
+                    </>
+                  )}
                 </button>
               )}
             </div>
@@ -401,7 +476,7 @@ const Checkout = () => {
         
         {/* Order Summary Sidebar */}
         <div className="w-full lg:w-1/3">
-          <div className="bg-white dark:bg-[#111] p-6 sticky top-24 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm">
+          <div className="bg-white dark:bg-[#0a0a0a] p-6 sticky top-24 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm">
             <h2 className="text-lg font-bold uppercase tracking-wider mb-6 border-b border-gray-200 dark:border-gray-800 pb-4">Order Summary</h2>
             
             <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
@@ -415,14 +490,6 @@ const Checkout = () => {
                     <p className="text-sm font-semibold line-clamp-1">{item.name}</p>
                     <p className="text-xs text-gray-500 mt-0.5">Size: {item.size} | {item.color}</p>
                     <p className="text-sm font-bold text-gold font-sans mt-1">${item.price}</p>
-                    
-                    {item.isCustom && item.customization && (
-                      <div className="text-[9px] text-gold/90 space-y-0.5 bg-gold/5 p-1.5 rounded border border-gold/15 mt-1.5">
-                        <p className="font-bold uppercase tracking-wider text-[8px] text-gold">Bespoke Spec:</p>
-                        <p className="truncate">Fabric: {item.customization.fabric}</p>
-                        <p className="truncate">Sleeve: {item.customization.sleeveDesign}</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}
