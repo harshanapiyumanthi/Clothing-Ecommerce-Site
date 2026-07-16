@@ -1,87 +1,21 @@
 const asyncHandler = require('express-async-handler');
 const Order = require('../models/Order');
-const Cart = require('../models/Cart');
-const Product = require('../models/Product');
-const Coupon = require('../models/Coupon');
 const Payment = require('../models/Payment');
 const stripe = require('../config/stripe');
+const orderService = require('../services/orderService');
 const logActivity = require('../utils/activityLogger');
 
 // @desc    Create new order
 // @route   POST /api/orders
 // @access  Private
 const createOrder = asyncHandler(async (req, res) => {
-    const { orderItems, shippingAddress, paymentMethod, couponCode } = req.body;
-
-    if (!orderItems || orderItems.length === 0) {
+    try {
+        const order = await orderService.createOrder(req.body, req.user);
+        res.status(201).json({ success: true, order });
+    } catch (error) {
         res.status(400);
-        throw new Error('No order items');
+        throw new Error(error.message);
     }
-
-    // Verify stock availability
-    for (const item of orderItems) {
-        const product = await Product.findById(item.product);
-        if (!product) {
-            res.status(404);
-            throw new Error(`Product not found: ${item.product}`);
-        }
-        if (product.stock < item.qty) {
-            res.status(400);
-            throw new Error(`Insufficient stock for: ${product.name}`);
-        }
-    }
-
-    let discount = 0;
-    if (couponCode) {
-        const coupon = await Coupon.findOne({ code: couponCode.toUpperCase(), isActive: true });
-        if (coupon && coupon.expiresAt > new Date() && coupon.usedCount < coupon.maxUsage) {
-            discount = coupon.discountType === 'percentage'
-                ? (orderItems.reduce((a, i) => a + i.price * i.qty, 0) * coupon.discountValue) / 100
-                : coupon.discountValue;
-            coupon.usedCount += 1;
-            await coupon.save();
-        }
-    }
-
-    const itemsPrice = orderItems.reduce((acc, item) => acc + item.price * item.qty, 0);
-    const shippingPrice = itemsPrice > 100 ? 0 : 15;
-    const totalPrice = itemsPrice + shippingPrice - discount;
-
-    const order = await Order.create({
-        user: req.user._id,
-        orderItems,
-        shippingAddress,
-        paymentMethod,
-        itemsPrice,
-        shippingPrice,
-        totalPrice,
-        couponCode,
-        discount,
-    });
-
-    // Update product stock and sold count
-    for (const item of orderItems) {
-        await Product.findByIdAndUpdate(item.product, {
-            $inc: { stock: -item.qty, sold: item.qty },
-        });
-    }
-
-    // Clear the server-side cart
-    await Cart.findOneAndDelete({ user: req.user._id });
-
-    // Create payment record for COD
-    if (paymentMethod === 'COD') {
-        await Payment.create({
-            user: req.user._id,
-            order: order._id,
-            amount: totalPrice,
-            currency: 'usd',
-            status: 'pending',
-            paymentMethod: 'COD',
-        });
-    }
-
-    res.status(201).json({ success: true, order });
 });
 
 // @desc    Get logged-in user orders
@@ -115,7 +49,8 @@ const getOrderById = asyncHandler(async (req, res) => {
         throw new Error('Order not found');
     }
     // Allow only the order owner or admin
-    if (order.user._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    const isAdmin = ['super_admin', 'admin', 'product_manager', 'order_manager', 'customer_support', 'inventory_manager', 'marketing_manager', 'designer'].includes(req.user.role);
+    if (order.user._id.toString() !== req.user._id.toString() && !isAdmin) {
         res.status(403);
         throw new Error('Not authorized to view this order');
     }
@@ -126,74 +61,35 @@ const getOrderById = asyncHandler(async (req, res) => {
 // @route   PUT /api/orders/:id/status
 // @access  Private/Admin
 const updateOrderStatus = asyncHandler(async (req, res) => {
-    const order = await Order.findById(req.params.id);
-    if (!order) {
-        res.status(404);
-        throw new Error('Order not found');
-    }
+    const { orderStatus, trackingNumber } = req.body;
+    try {
+        const { order, oldStatus } = await orderService.updateOrderStatus(req.params.id, orderStatus, trackingNumber);
 
-    const oldStatus = order.orderStatus;
-    const newStatus = req.body.orderStatus ?? order.orderStatus;
-
-    order.orderStatus = newStatus;
-    if (req.body.trackingNumber) order.trackingNumber = req.body.trackingNumber;
-    if (newStatus === 'Delivered') {
-        order.isDelivered = true;
-        order.deliveredAt = Date.now();
-    }
-    if (newStatus === 'Cancelled') {
-        // Restore stock
-        for (const item of order.orderItems) {
-            await Product.findByIdAndUpdate(item.product, {
-                $inc: { stock: item.qty, sold: -item.qty },
-            });
+        if (orderStatus === 'Cancelled') {
+            await logActivity(req, 'Order Cancelled', 'Order', order._id, `Order #${order._id} cancelled`);
+        } else {
+            await logActivity(req, 'Order Updated', 'Order', order._id, `Changed status of order #${order._id} from "${oldStatus}" to "${orderStatus}"`);
         }
+
+        res.json({ success: true, order });
+    } catch (error) {
+        res.status(400);
+        throw new Error(error.message);
     }
-
-    const updated = await order.save();
-
-    if (newStatus === 'Cancelled' && oldStatus !== 'Cancelled') {
-        await logActivity(req, 'Order Cancelled', 'Order', order._id, `Order #${order._id} cancelled`);
-    } else {
-        await logActivity(req, 'Order Updated', 'Order', order._id, `Changed status of order #${order._id} from "${oldStatus}" to "${newStatus}"`);
-    }
-
-    res.json({ success: true, order: updated });
 });
 
-// @desc    Mark order as paid (e.g., after successful Stripe payment from frontend)
+// @desc    Mark order as paid
 // @route   PUT /api/orders/:id/pay
 // @access  Private
 const markOrderAsPaid = asyncHandler(async (req, res) => {
-    const order = await Order.findById(req.params.id);
-    if (!order) {
-        res.status(404);
-        throw new Error('Order not found');
+    const isAdmin = ['super_admin', 'admin', 'product_manager', 'order_manager', 'customer_support', 'inventory_manager', 'marketing_manager', 'designer'].includes(req.user.role);
+    try {
+        const order = await orderService.markOrderAsPaid(req.params.id, req.body, req.user, isAdmin);
+        res.json({ success: true, order });
+    } catch (error) {
+        res.status(400);
+        throw new Error(error.message);
     }
-
-    if (order.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-        res.status(403);
-        throw new Error('Not authorized');
-    }
-
-    const { id, status, update_time, email_address } = req.body;
-
-    order.isPaid = true;
-    order.paidAt = Date.now();
-    order.paymentResult = { id, status, update_time, email_address };
-    order.orderStatus = 'Confirmed';
-
-    const updated = await order.save();
-
-    // Update payment record
-    if (id) {
-        await Payment.findOneAndUpdate(
-            { stripePaymentIntentId: id },
-            { status: 'succeeded' }
-        );
-    }
-
-    res.json({ success: true, order: updated });
 });
 
 // @desc    Create Stripe payment intent

@@ -37,11 +37,31 @@ const protect = async (req, res, next) => {
 
 // Admin middleware - Check if user role is admin
 const admin = (req, res, next) => {
-    if (req.user && req.user.role === 'admin') {
+    const adminRoles = [
+        'super_admin',
+        'admin',
+        'product_manager',
+        'order_manager',
+        'customer_support',
+        'inventory_manager',
+        'marketing_manager',
+        'designer'
+    ];
+    if (req.user && adminRoles.includes(req.user.role)) {
         next();
     } else {
-        res.status(403).json({ success: false, message: 'Access denied: Admin only' });
+        res.status(403).json({ success: false, message: 'Access denied: Administrative privileges required' });
     }
+};
+
+// Fine-grained RBAC middleware
+const restrictTo = (...allowedRoles) => {
+    return (req, res, next) => {
+        if (!req.user || !allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({ success: false, message: 'Access denied: Insufficient privileges' });
+        }
+        next();
+    };
 };
 
 // Optional auth — attaches user if token present, but doesn't block
@@ -59,4 +79,4 @@ const optionalAuth = async (req, res, next) => {
     next();
 };
 
-module.exports = { protect, admin, optionalAuth };
+module.exports = { protect, admin, restrictTo, optionalAuth };

@@ -1,5 +1,8 @@
+const crypto = require('crypto');
 const User = require('../models/User');
+const Order = require('../models/Order');
 const generateToken = require('../utils/generateToken');
+const logActivity = require('../utils/activityLogger');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinaryHelper');
 
 // @desc    Register a new user
@@ -25,6 +28,8 @@ const registerUser = async (req, res) => {
                 role: user.role,
                 phone: user.phone,
                 avatar: user.avatar,
+                membershipTier: user.membershipTier,
+                rewardPoints: user.rewardPoints,
                 token: generateToken(user._id),
             });
         } else {
@@ -44,17 +49,52 @@ const loginUser = async (req, res) => {
 
         const user = await User.findOne({ email }).select('+password');
 
-        if (!user || !(await user.matchPassword(password))) {
+        if (!user) {
             return res.status(401).json({ success: false, message: 'Invalid email or password' });
         }
 
-        if (!user.isActive) {
-            return res.status(403).json({ success: false, message: 'Account has been deactivated' });
+        // Check if account is temporarily locked
+        if (user.lockUntil && user.lockUntil > Date.now()) {
+            const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / (60 * 1000));
+            return res.status(403).json({
+                success: false,
+                message: `Account is temporarily locked due to multiple failed login attempts. Please try again in ${minutesLeft} minute(s).`
+            });
         }
 
-        // Update last login
+        if (!(await user.matchPassword(password))) {
+            // Increment failed attempts
+            user.loginAttempts = (user.loginAttempts || 0) + 1;
+            if (user.loginAttempts >= 5) {
+                user.lockUntil = Date.now() + 15 * 60 * 1000; // Lock for 15 mins
+                user.loginAttempts = 0; // Reset counter after lock
+            }
+            await user.save({ validateBeforeSave: false });
+
+            const attemptsLeft = 5 - (user.loginAttempts || 0);
+            return res.status(401).json({
+                success: false,
+                message: attemptsLeft > 0
+                    ? `Invalid email or password. You have ${attemptsLeft} attempts remaining.`
+                    : 'Account has been locked for 15 minutes.'
+            });
+        }
+
+        if (!user.isActive) {
+            return res.status(403).json({ success: false, message: 'Account has been deactivated. Please contact support.' });
+        }
+
+        // Reset failed login attempts on successful login
+        user.loginAttempts = 0;
+        user.lockUntil = undefined;
         user.lastLogin = new Date();
         await user.save({ validateBeforeSave: false });
+
+        // Log admin login to audit system
+        const adminRoles = ['super_admin', 'admin', 'product_manager', 'order_manager', 'customer_support', 'inventory_manager', 'marketing_manager', 'designer'];
+        if (adminRoles.includes(user.role)) {
+            await logActivity(req, 'Admin Login', 'User', user._id, `Admin ${user.name} logged in successfully.`);
+        }
 
         res.json({
             success: true,
@@ -64,6 +104,9 @@ const loginUser = async (req, res) => {
             role: user.role,
             phone: user.phone,
             avatar: user.avatar,
+            membershipTier: user.membershipTier,
+            rewardPoints: user.rewardPoints,
+            communicationPreferences: user.communicationPreferences || { email: true, sms: false, whatsapp: false },
             token: generateToken(user._id),
         });
     } catch (error) {
@@ -93,6 +136,9 @@ const getUserProfile = async (req, res) => {
                 avatar: user.avatar,
                 addresses: user.addresses,
                 membershipTier: user.membershipTier,
+                membershipExpiry: user.membershipExpiry,
+                rewardPoints: user.rewardPoints,
+                communicationPreferences: user.communicationPreferences || { email: true, sms: false, whatsapp: false },
                 lastLogin: user.lastLogin,
                 createdAt: user.createdAt,
             },
@@ -111,12 +157,21 @@ const upgradeMembership = async (req, res) => {
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
-        
-        // Mock payment verification logic would go here
+
         user.membershipTier = 'Premium';
+        user.membershipStartDate = Date.now();
+        const expiry = new Date();
+        expiry.setMonth(expiry.getMonth() + 12); // Annual
+        user.membershipExpiry = expiry;
+
         await user.save();
-        
-        res.json({ success: true, message: 'Upgraded to Premium Membership successfully', membershipTier: user.membershipTier });
+
+        res.json({
+            success: true,
+            message: 'Upgraded to Premium Membership successfully',
+            membershipTier: user.membershipTier,
+            membershipExpiry: user.membershipExpiry
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
@@ -159,6 +214,8 @@ const updateUserProfile = async (req, res) => {
                 phone: updated.phone,
                 avatar: updated.avatar,
                 addresses: updated.addresses,
+                membershipTier: updated.membershipTier,
+                rewardPoints: updated.rewardPoints,
             },
             token: generateToken(updated._id),
         });
@@ -168,7 +225,7 @@ const updateUserProfile = async (req, res) => {
 };
 
 // @desc    Change password
-// @route   PUT /api/auth/change-password
+// @route   POST /api/auth/change-password
 // @access  Private
 const changePassword = async (req, res) => {
     try {
@@ -193,7 +250,7 @@ const changePassword = async (req, res) => {
     }
 };
 
-// @desc    Forgot Password
+// @desc    Forgot Password - generate link and console log it
 // @route   POST /api/auth/forgot-password
 // @access  Public
 const forgotPassword = async (req, res) => {
@@ -202,16 +259,128 @@ const forgotPassword = async (req, res) => {
         const user = await User.findOne({ email });
 
         if (!user) {
-            // Security: don't reveal if email exists
-            return res.json({ success: true, message: 'If an account with that email exists, a password reset link was sent.' });
+            // Security: don't reveal if email exists, return success to prevent user enumeration
+            return res.json({
+                success: true,
+                message: 'If an account with that email exists, a password reset link was sent.'
+            });
         }
 
-        // NOTE: In production, generate a reset token, store it on the user, and send email via NodeMailer/SES
-        console.log(`[INFO] Password reset requested for: ${email}`);
+        // Generate a random token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+
+        // Hash token and set it in DB
+        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        user.resetPasswordToken = hashedToken;
+        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour expiry
+
+        await user.save({ validateBeforeSave: false });
+
+        // Build the reset URL
+        const resetUrl = `http://localhost:5173/reset-password?token=${resetToken}`;
+
+        console.log(`\n======================================================`);
+        console.log(`✉️  [SECURITY EMAIL SIMULATOR]`);
+        console.log(`To: ${email}`);
+        console.log(`Subject: Elegance Password Reset Request`);
+        console.log(`Reset Link: ${resetUrl}`);
+        console.log(`======================================================\n`);
 
         res.json({
             success: true,
             message: 'If an account with that email exists, a password reset link was sent.',
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+// @desc    Reset Password
+// @route   POST /api/auth/reset-password
+// @access  Public
+const resetPassword = async (req, res) => {
+    try {
+        const { token, password } = req.body;
+
+        // Hash the incoming token to match what's stored
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        const user = await User.findOne({
+            resetPasswordToken: hashedToken,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ success: false, message: 'Invalid or expired password reset token.' });
+        }
+
+        user.password = password;
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+
+        await user.save();
+
+        res.json({ success: true, message: 'Password has been reset successfully. You can now log in.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+// @desc    Delete Account (Self Deactivation)
+// @route   DELETE /api/auth/delete-account
+// @access  Private
+const deleteAccount = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Check if there are active, processing, or shipped orders
+        const pendingOrders = await Order.findOne({
+            user: user._id,
+            orderStatus: { $in: ['Received', 'Processing', 'Shipped', 'Design Review', 'Cutting', 'Tailoring', 'Quality Check', 'Ready'] }
+        });
+
+        if (pendingOrders) {
+            return res.status(400).json({
+                success: false,
+                message: 'Your account cannot be deactivated while you have orders currently in progress. Please wait until they are completed or contact support.'
+            });
+        }
+
+        // Soft deactivation to preserve audit log consistency
+        user.isActive = false;
+        user.deactivatedAt = Date.now();
+        await user.save({ validateBeforeSave: false });
+
+        res.json({
+            success: true,
+            message: 'Your account has been successfully deactivated according to privacy policies. If you did this by mistake, contact support to restore it.'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+// @desc    Update Communication Preferences
+// @route   PUT /api/auth/communication-preferences
+// @access  Private
+const updateCommunicationPreferences = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const { email, sms, whatsapp } = req.body;
+        user.communicationPreferences = { email, sms, whatsapp };
+        await user.save({ validateBeforeSave: false });
+
+        res.json({
+            success: true,
+            message: 'Communication preferences updated successfully.',
+            communicationPreferences: user.communicationPreferences
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error', error: error.message });
@@ -259,7 +428,12 @@ const toggleUserActive = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
         user.isActive = !user.isActive;
-        await user.save();
+        await user.save({ validateBeforeSave: false });
+
+        // Log admin suspension action
+        const actionStr = user.isActive ? 'Customer Account Restored' : 'Customer Account Suspended';
+        await logActivity(req, actionStr, 'User', user._id, `Customer ${user.name} (${user.email}) active status toggled to ${user.isActive}.`);
+
         res.json({ success: true, isActive: user.isActive });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error', error: error.message });
@@ -274,6 +448,9 @@ module.exports = {
     upgradeMembership,
     changePassword,
     forgotPassword,
+    resetPassword,
+    deleteAccount,
+    updateCommunicationPreferences,
     getAllUsers,
     toggleUserActive,
 };

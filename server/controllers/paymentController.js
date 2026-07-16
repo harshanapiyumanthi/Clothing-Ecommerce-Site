@@ -2,43 +2,72 @@ const asyncHandler = require('express-async-handler');
 const stripe = require('../config/stripe');
 const Payment = require('../models/Payment');
 const Order = require('../models/Order');
+const PaymentFactory = require('../services/payments/PaymentFactory');
+const logActivity = require('../utils/activityLogger');
 
-// @desc    Create Stripe payment intent
+// @desc    Create generic payment transaction
 // @route   POST /api/payments/intent
 // @access  Private
 const createPaymentIntent = asyncHandler(async (req, res) => {
-    const { amount, orderId } = req.body;
+    const { amount, orderId, paymentMethod } = req.body;
 
     if (!amount || amount <= 0) {
         res.status(400);
         throw new Error('Invalid payment amount');
     }
 
-    const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // in cents
-        currency: 'usd',
-        metadata: {
-            userId: req.user._id.toString(),
-            orderId: orderId || '',
-        },
-    });
+    const method = paymentMethod || 'Stripe';
+    try {
+        const provider = PaymentFactory.getProvider(method);
+        const transaction = await provider.createTransaction(req.user, amount, orderId);
 
-    // Record payment intent in DB
-    const payment = await Payment.create({
-        user: req.user._id,
-        order: orderId || undefined,
-        stripePaymentIntentId: paymentIntent.id,
-        amount,
-        currency: 'usd',
-        status: 'pending',
-        paymentMethod: 'Stripe',
-    });
+        res.json(transaction);
+    } catch (error) {
+        console.error(`Payment creation failed for ${method}:`, error.message);
+        res.status(400).json({ success: false, message: error.message });
+    }
+});
 
-    res.json({
-        success: true,
-        clientSecret: paymentIntent.client_secret,
-        paymentId: payment._id,
-    });
+// @desc    Verify transaction status
+// @route   GET /api/payments/verify/:transactionId
+// @access  Private
+const verifyTransactionStatus = asyncHandler(async (req, res) => {
+    const { transactionId } = req.params;
+    const { method } = req.query;
+
+    if (!method) {
+        res.status(400);
+        throw new Error('Payment method query parameter is required');
+    }
+
+    try {
+        const provider = PaymentFactory.getProvider(method);
+        const verification = await provider.verifyTransaction(transactionId);
+
+        // Update the database records on success
+        if (verification.status === 'succeeded') {
+            const payment = await Payment.findOneAndUpdate(
+                { stripePaymentIntentId: transactionId },
+                { status: 'succeeded' },
+                { new: true }
+            );
+
+            if (payment && payment.order) {
+                await Order.findByIdAndUpdate(payment.order, {
+                    isPaid: true,
+                    paidAt: new Date(),
+                    'paymentResult.id': transactionId,
+                    'paymentResult.status': 'succeeded',
+                    'paymentResult.update_time': new Date().toISOString(),
+                    orderStatus: 'Confirmed',
+                });
+            }
+        }
+
+        res.json({ success: true, ...verification });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
 });
 
 // @desc    Stripe webhook handler
@@ -104,10 +133,14 @@ const stripeWebhook = asyncHandler(async (req, res) => {
         }
         case 'charge.refunded': {
             const charge = event.data.object;
-            await Payment.findOneAndUpdate(
+            const payment = await Payment.findOneAndUpdate(
                 { stripePaymentIntentId: charge.payment_intent },
                 { status: 'refunded', refundedAt: new Date() }
             );
+            // Log refund to audit log
+            if (payment && req) {
+                await logActivity(req, 'Refund Processed', 'Payment', payment._id, `Refund processed for payment transaction ${charge.payment_intent}.`);
+            }
             break;
         }
         default:
@@ -198,13 +231,18 @@ const markCODPaid = asyncHandler(async (req, res) => {
 
     order.isPaid = true;
     order.paidAt = new Date();
+    order.orderStatus = 'Confirmed';
     await order.save();
+
+    // Log administrative action
+    await logActivity(req, 'COD Order Marked Paid', 'Order', order._id, `Marked COD Order #${order._id} as fully paid.`);
 
     res.json({ success: true, payment, order });
 });
 
 module.exports = {
     createPaymentIntent,
+    verifyTransactionStatus,
     stripeWebhook,
     getPaymentHistory,
     getAllPayments,

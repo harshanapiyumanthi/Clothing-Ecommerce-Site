@@ -36,7 +36,17 @@ const userSchema = mongoose.Schema(
         },
         role: {
             type: String,
-            enum: ['customer', 'admin'],
+            enum: [
+                'customer',
+                'super_admin',
+                'admin',
+                'product_manager',
+                'order_manager',
+                'customer_support',
+                'inventory_manager',
+                'marketing_manager',
+                'designer'
+            ],
             default: 'customer',
         },
         phone: { type: String, default: '' },
@@ -55,10 +65,18 @@ const userSchema = mongoose.Schema(
         membershipExpiry: { type: Date },
         dateOfBirth: { type: Date },
         isActive: { type: Boolean, default: true },
+        deactivatedAt: { type: Date },
         lastLogin: { type: Date },
         passwordChangedAt: { type: Date },
         resetPasswordToken: { type: String },
         resetPasswordExpires: { type: Date },
+        loginAttempts: { type: Number, default: 0 },
+        lockUntil: { type: Date },
+        communicationPreferences: {
+            email: { type: Boolean, default: true },
+            sms: { type: Boolean, default: false },
+            whatsapp: { type: Boolean, default: false }
+        },
     },
     {
         timestamps: true,

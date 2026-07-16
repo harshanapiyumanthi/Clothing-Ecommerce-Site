@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Category = require('../models/Category');
 const Product = require('../models/Product');
+const SystemSetting = require('../models/SystemSetting');
 
 const INITIAL_CATEGORIES = [
     { name: 'Women', slug: 'women', description: 'Sophisticated women’s luxury attire.', image: 'https://images.unsplash.com/photo-1515347619362-7104b2b4bc66?q=80&w=600', isActive: true },
@@ -198,6 +199,23 @@ const seedDatabase = async () => {
                 await gown.save();
                 console.log('🌱 Seeding default pairings complete!');
             }
+        }
+
+        // Seed default system settings
+        const settingsCount = await SystemSetting.countDocuments();
+        if (settingsCount === 0) {
+            console.log('🌱 Seeding default system settings in MongoDB...');
+            const defaultSettings = [
+                { key: 'taxRate', value: 8, description: 'Sales tax rate percentage' },
+                { key: 'shippingCharge', value: 15, description: 'Standard shipping charge amount ($)' },
+                { key: 'freeShippingThreshold', value: 100, description: 'Minimum order amount for free shipping ($)' },
+                { key: 'rewardPointsPerDollar', value: 1, description: 'Reward points earned per dollar spent' },
+                { key: 'membershipPremiumPrice', value: 49, description: 'Price of Premium membership tier ($)' },
+                { key: 'membershipVIPPrice', value: 99, description: 'Price of VIP membership tier ($)' },
+                { key: 'businessName', value: 'Elegance Fashion', description: 'Brand name' }
+            ];
+            await SystemSetting.insertMany(defaultSettings);
+            console.log('🌱 Seeding default system settings complete!');
         }
     } catch (err) {
         console.error('❌ Failed to seed MongoDB:', err.message);

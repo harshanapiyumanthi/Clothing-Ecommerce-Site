@@ -1,13 +1,15 @@
 const SavedDesign = require('../models/SavedDesign');
 const Product = require('../models/Product');
+const { validateCustomization } = require('../services/customizationService');
 
 // @desc    Save a new customized design
 // @route   POST /api/saved-designs
-// @access  Private (Premium Only)
+// @access  Private (Premium/VIP Only)
 const saveDesign = async (req, res) => {
     try {
-        if (req.user.membershipTier !== 'Premium') {
-            return res.status(403).json({ success: false, message: 'Only Premium members can save custom designs.' });
+        const allowedTiers = ['Premium', 'VIP'];
+        if (!allowedTiers.includes(req.user.membershipTier)) {
+            return res.status(403).json({ success: false, message: 'Only Premium or VIP members can save custom designs.' });
         }
 
         const { productId, customizations, totalPrice, productionTime, previewImage } = req.body;
@@ -15,6 +17,23 @@ const saveDesign = async (req, res) => {
         const product = await Product.findById(productId);
         if (!product || !product.isPersonalizable) {
             return res.status(400).json({ success: false, message: 'Product is not personalizable.' });
+        }
+
+        // Validate customizations against compatibility rules
+        const customMap = {};
+        if (Array.isArray(customizations)) {
+            customizations.forEach(c => {
+                if (c.optionType === 'Fabric') customMap.fabric = c.optionValue;
+                if (c.optionType === 'Neck Style') customMap.neckDesign = c.optionValue;
+                if (c.optionType === 'Sleeve Style') customMap.sleeveDesign = c.optionValue;
+                if (c.optionType === 'Length') customMap.dressLength = c.optionValue;
+                if (c.optionType === 'Decoration') customMap.decoration = c.optionValue;
+            });
+        }
+
+        const validation = await validateCustomization(customMap);
+        if (!validation.isValid) {
+            return res.status(400).json({ success: false, message: validation.message });
         }
 
         const newDesign = await SavedDesign.create({
@@ -34,10 +53,11 @@ const saveDesign = async (req, res) => {
 
 // @desc    Get user's saved designs
 // @route   GET /api/saved-designs
-// @access  Private (Premium Only)
+// @access  Private (Premium/VIP Only)
 const getMySavedDesigns = async (req, res) => {
     try {
-        if (req.user.membershipTier !== 'Premium') {
+        const allowedTiers = ['Premium', 'VIP'];
+        if (!allowedTiers.includes(req.user.membershipTier)) {
             return res.status(403).json({ success: false, message: 'Access denied.' });
         }
 

@@ -23,7 +23,7 @@ const orderSchema = new mongoose.Schema({
         country: { type: String, required: true, default: 'Sri Lanka' },
         phone: { type: String, required: true },
     },
-    paymentMethod: { type: String, required: true, enum: ['Stripe', 'COD'] },
+    paymentMethod: { type: String, required: true, enum: ['Stripe', 'COD', 'Mintpay', 'FLEX'] },
     paymentResult: {
         id: String,
         status: String,
@@ -35,7 +35,20 @@ const orderSchema = new mongoose.Schema({
     totalPrice: { type: Number, required: true, default: 0.0 },
     orderStatus: {
         type: String,
-        enum: ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
+        enum: [
+            'Pending',
+            'Confirmed',
+            'Preparing',
+            'Quality Check',
+            'Packed',
+            'Shipped',
+            'Delivered',
+            'Cancelled',
+            'Returned',
+            'Exchange Requested',
+            'Exchange Approved',
+            'Exchange Rejected'
+        ],
         default: 'Pending',
     },
     isPaid: { type: Boolean, default: false },

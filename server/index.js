@@ -59,6 +59,7 @@ const membershipRoutes = require('./routes/membershipRoutes');
 const rewardRoutes = require('./routes/rewardRoutes');
 const colorRoutes = require('./routes/colorRoutes');
 const fabricRoutes = require('./routes/fabricRoutes');
+const biRoutes = require('./routes/biRoutes');
 
 app.get('/', (req, res) => res.json({ message: '🌟 Elegance Fashion API is running' }));
 
@@ -81,6 +82,7 @@ app.use('/api/memberships',     membershipRoutes);
 app.use('/api/rewards',         rewardRoutes);
 app.use('/api/colors',          colorRoutes);
 app.use('/api/fabrics',         fabricRoutes);
+app.use('/api/bi',              biRoutes);
 
 // ─── Error Handlers ──────────────────────────────────────────────────────────
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');

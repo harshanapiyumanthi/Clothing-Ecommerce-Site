@@ -3,6 +3,7 @@ const router = express.Router();
 const { protect, admin } = require('../middleware/authMiddleware');
 const {
     createPaymentIntent,
+    verifyTransactionStatus,
     stripeWebhook,
     getPaymentHistory,
     getAllPayments,
@@ -12,8 +13,11 @@ const {
 // Stripe webhook (must handle raw request body)
 router.post('/webhook', express.raw({ type: 'application/json' }), stripeWebhook);
 
-// Stripe Checkout Payment Intent
+// Stripe Checkout Payment Intent / generic transactions creation
 router.post('/intent', protect, createPaymentIntent);
+
+// Verify transaction status
+router.get('/verify/:transactionId', protect, verifyTransactionStatus);
 
 // Private transaction lookup
 router.get('/history', protect, getPaymentHistory);
