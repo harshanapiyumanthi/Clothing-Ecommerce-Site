@@ -91,6 +91,13 @@ const userSchema = mongoose.Schema(
             favoriteStyles: [{ type: String }],
             favoritePriceRange: { type: String, enum: ['Budget', 'Mid', 'Luxury', 'Any'], default: 'Any' }
         },
+        deviceTokens: [
+            {
+                token: { type: String, required: true },
+                platform: { type: String, enum: ['ios', 'android', 'web'], default: 'web' },
+                deviceId: { type: String }
+            }
+        ]
     },
     {
         timestamps: true,

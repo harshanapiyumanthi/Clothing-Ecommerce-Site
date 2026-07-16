@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { 
   FiMenu, FiX, FiGrid, FiBox, FiLayers, FiShoppingCart, FiUsers, 
-  FiTrendingUp, FiHeart, FiSettings, FiMoon, FiSun, FiBell, FiLogOut, FiSliders, FiStar, FiMessageSquare
+  FiTrendingUp, FiHeart, FiSettings, FiMoon, FiSun, FiBell, FiLogOut, FiSliders, FiStar, FiMessageSquare, FiCpu
 } from 'react-icons/fi';
 import { logout } from '../redux/slices/authSlice';
 
@@ -62,6 +62,7 @@ const AdminLayout = ({ children, activeTab, setActiveTab }) => {
     { id: 'content',        name: 'Content Pages',        icon: <FiLayers size={16} />,      group: 'Content' },
     // Business
     { id: 'reports',        name: 'Reports',              icon: <FiTrendingUp size={16} />,  group: 'Business' },
+    { id: 'future',         name: 'Expansion & AI',       icon: <FiCpu size={16} />,         group: 'Business' },
     { id: 'settings',       name: 'Settings',             icon: <FiSettings size={16} />,    group: 'Business' },
   ];
 

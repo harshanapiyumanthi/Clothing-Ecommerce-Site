@@ -756,6 +756,141 @@ export const adminApi = {
         ]
       };
     }
+  },
+
+  // ─── Future Expansion & AI APIs ─────────────────────────────────────────────
+  getFutureShippingZones: async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/future/shipping-zones', getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return {
+        success: true,
+        zones: [
+          { _id: '1', name: 'South Asia (Local)', countries: ['Sri Lanka', 'India'], baseCost: 350, taxRate: 15, dutyRate: 0, deliveryEstimate: '1-3 Business Days', courierPartner: 'DHL Express' },
+          { _id: '2', name: 'North America', countries: ['USA', 'Canada'], baseCost: 4500, taxRate: 8, dutyRate: 5, deliveryEstimate: '5-7 Business Days', courierPartner: 'DHL Express' }
+        ]
+      };
+    }
+  },
+
+  saveFutureShippingZone: async (zoneData) => {
+    try {
+      const res = await axios.post('http://localhost:5000/api/future/shipping-zones', zoneData, getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return { success: false, message: 'Failed to connect' };
+    }
+  },
+
+  getFutureWarehouses: async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/future/inventory/warehouses', getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return {
+        success: true,
+        warehouses: [
+          { _id: 'w1', name: 'Colombo Main Depot', location: 'Colombo, Sri Lanka', capacity: 20000, stockMap: [] },
+          { _id: 'w2', name: 'Kandy Central Hub', location: 'Kandy, Sri Lanka', capacity: 8000, stockMap: [] }
+        ]
+      };
+    }
+  },
+
+  updateFutureWarehouseStock: async (warehouseId, productId, quantity) => {
+    try {
+      const res = await axios.put(`http://localhost:5000/api/future/inventory/warehouses/${warehouseId}/stock`, { productId, quantity }, getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return { success: false };
+    }
+  },
+
+  getFutureSuppliers: async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/future/inventory/suppliers', getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return {
+        success: true,
+        suppliers: [
+          { _id: 's1', name: 'Lanka Silks Co.', contactPerson: 'Arjuna Silva', phone: '+94 77 123 4567', email: 'arjuna@lankasilks.com', suppliedCategories: ['Fabric'], suppliedMaterials: ['Georgette Silk'] }
+        ]
+      };
+    }
+  },
+
+  saveFutureSupplier: async (supplierData) => {
+    try {
+      const res = await axios.post('http://localhost:5000/api/future/inventory/suppliers', supplierData, getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return { success: false };
+    }
+  },
+
+  getFutureMarketplaceVendors: async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/future/marketplace', getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return {
+        success: true,
+        vendors: [
+          { _id: 'v1', name: 'Nirosha Couture', owner: { name: 'Nirosha J', email: 'nirosha@designer.com' }, commissionRate: 12, status: 'Approved' }
+        ]
+      };
+    }
+  },
+
+  updateFutureMarketplaceVendor: async (vendorId, updateData) => {
+    try {
+      const res = await axios.put(`http://localhost:5000/api/future/marketplace/${vendorId}`, updateData, getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return { success: false };
+    }
+  },
+
+  getFutureTranslations: async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/future/translations', getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return {
+        success: true,
+        translations: [
+          { _id: 't1', key: 'navbar_shop', values: { en: 'Shop', si: 'සාප්පුව', ta: 'கடை' }, category: 'Navbar' }
+        ]
+      };
+    }
+  },
+
+  updateFutureTranslation: async (translationId, values) => {
+    try {
+      const res = await axios.put(`http://localhost:5000/api/future/translations/${translationId}`, { values }, getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return { success: false };
+    }
+  },
+
+  getFutureAiStylistAdvice: async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/future/ai-stylist', getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return {
+        success: true,
+        userPreferences: { colors: ['Rose Red', 'Navy Blue'], sizes: ['M', 'L'], styles: ['Elegant evening', 'Casual chic'] },
+        purchasedHistory: ['Silk Evening Gown'],
+        stylistAdvice: {
+          Wedding: 'For a wedding occasion, we recommend combining your Silk Evening Gown with gold accents.',
+          Office: 'The tailor-fit Merino Wool Blazer provides standard elegance.'
+        }
+      };
+    }
   }
 };
 

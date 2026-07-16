@@ -33,6 +33,30 @@ const productSchema = new mongoose.Schema({
     isPersonalizable: { type: Boolean, default: false },
     baseProductionTime: { type: Number, default: 2 },
     allowedCustomizations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'CustomizationOption' }],
+    // Future Try-On & 3D Asset Support
+    threeDModelUrl: { type: String, default: '' },
+    arTextureUrl: { type: String, default: '' },
+    bodyMeasurementMapping: {
+        targetHeightMin: { type: Number },
+        targetHeightMax: { type: Number },
+        targetChestMin: { type: Number },
+        targetChestMax: { type: Number },
+        targetWaistMin: { type: Number },
+        targetWaistMax: { type: Number }
+    },
+    // Multi-Language Support
+    translations: {
+        name: {
+            en: { type: String, default: '' },
+            si: { type: String, default: '' },
+            ta: { type: String, default: '' }
+        },
+        description: {
+            en: { type: String, default: '' },
+            si: { type: String, default: '' },
+            ta: { type: String, default: '' }
+        }
+    }
 }, { timestamps: true });
 
 // Full-text search index

@@ -1,0 +1,70 @@
+openapi: 3.0.3
+info:
+  title: Elegance Fashion Future Expansion API
+  description: API definition for Prompt 12 future-ready scalability modules (AI Styilist, Warehouse inventory, Shipping Zones, Vendor stores).
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api/future
+paths:
+  /ai-stylist:
+    get:
+      summary: Get user-matched catalog options & stylist advice context
+      description: Returns consolidated color, size, and styling preferences for AI consumption.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful retrieval
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  userPreferences:
+                    type: object
+                  purchasedHistory:
+                    type: array
+                    items:
+                      type: string
+                  matchedCatalog:
+                    type: array
+  /mobile/register-device:
+    post:
+      summary: Register mobile push token
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                platform:
+                  type: string
+                  enum: [ios, android, web]
+      responses:
+        '200':
+          description: Push token registered
+  /currencies:
+    get:
+      summary: Get exchange rates (LKR to USD, EUR)
+      responses:
+        '200':
+          description: Successful rates mapping
+  /translations:
+    get:
+      summary: Retrieve dynamic translations for localization
+      responses:
+        '200':
+          description: Translation list returned
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
