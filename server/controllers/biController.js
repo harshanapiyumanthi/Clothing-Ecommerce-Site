@@ -4,7 +4,6 @@ const Product = require('../models/Product');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
 const Review = require('../models/Review');
-const Customization = require('../models/Customization');
 const AnalyticsEvent = require('../models/AnalyticsEvent');
 const { trackEvent } = require('../utils/analyticsTracker');
 
