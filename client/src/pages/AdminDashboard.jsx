@@ -19,6 +19,7 @@ import ReviewManager from '../components/admin/ReviewManager';
 import MarketingManager from '../components/admin/MarketingManager';
 import ContentManager from '../components/admin/ContentManager';
 import InventoryManager from '../components/admin/InventoryManager';
+import CrmManager from '../components/admin/CrmManager';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -41,6 +42,7 @@ const AdminDashboard = () => {
       case 'marketing':       return <MarketingManager />;
       case 'content':         return <ContentManager />;
       case 'inventory':       return <InventoryManager />;
+      case 'crm':             return <CrmManager />;
       case 'settings':        return <SettingsManager />;
       default:                return <DashboardView />;
     }

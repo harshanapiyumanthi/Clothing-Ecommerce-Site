@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { 
   FiMenu, FiX, FiGrid, FiBox, FiLayers, FiShoppingCart, FiUsers, 
-  FiTrendingUp, FiHeart, FiSettings, FiMoon, FiSun, FiBell, FiLogOut, FiSliders
+  FiTrendingUp, FiHeart, FiSettings, FiMoon, FiSun, FiBell, FiLogOut, FiSliders, FiStar, FiMessageSquare
 } from 'react-icons/fi';
 import { logout } from '../redux/slices/authSlice';
 
@@ -53,6 +53,7 @@ const AdminLayout = ({ children, activeTab, setActiveTab }) => {
     { id: 'recommendations',name: 'Recommendations',      icon: <FiHeart size={16} />,       group: 'Orders' },
     // Customers
     { id: 'customers',      name: 'Customers',            icon: <FiUsers size={16} />,       group: 'Customers' },
+    { id: 'crm',            name: 'CRM & Support',        icon: <FiMessageSquare size={16} />, group: 'Customers' },
     { id: 'memberships',    name: 'Membership & Loyalty', icon: <FiStar size={16} />,        group: 'Customers' },
     { id: 'coupons',        name: 'Coupons',              icon: <FiGrid size={16} />,        group: 'Customers' },
     // Content

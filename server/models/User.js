@@ -75,7 +75,21 @@ const userSchema = mongoose.Schema(
         communicationPreferences: {
             email: { type: Boolean, default: true },
             sms: { type: Boolean, default: false },
-            whatsapp: { type: Boolean, default: false }
+            whatsapp: { type: Boolean, default: false },
+            pushNotifications: { type: Boolean, default: false },
+            marketingOptIn: { type: Boolean, default: true }
+        },
+        loyaltyStatus: {
+            type: String,
+            enum: ['Standard', 'Silver', 'Gold', 'Platinum'],
+            default: 'Standard'
+        },
+        preferences: {
+            favoriteColors: [{ type: String }],
+            favoriteCategories: [{ type: String }],
+            favoriteSizes: [{ type: String }],
+            favoriteStyles: [{ type: String }],
+            favoritePriceRange: { type: String, enum: ['Budget', 'Mid', 'Luxury', 'Any'], default: 'Any' }
         },
     },
     {

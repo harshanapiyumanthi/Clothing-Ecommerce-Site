@@ -19,6 +19,12 @@ const notificationSchema = new mongoose.Schema({
             'OrderDelivered',
             'MembershipRenewal',
             'CustomizationProgress',
+            'DiscountCampaign',
+            'BirthdayWish',
+            'AbandonedCart',
+            'WishlistAlert',
+            'SupportTicket',
+            'LoyaltyUpdate',
             'System'
         ],
         default: 'System'

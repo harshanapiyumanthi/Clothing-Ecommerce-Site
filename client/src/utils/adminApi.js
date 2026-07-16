@@ -414,6 +414,43 @@ export const adminApi = {
     return recs;
   },
 
+  // ─── CRM & Support APIs ─────────────────────────────────────────────
+  getCRMDashboard: async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/crm/segments', getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return { success: false };
+    }
+  },
+
+  getCustomer360: async (userId) => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/crm/customer-360/${userId}`, getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return { success: false };
+    }
+  },
+
+  getSupportTickets: async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/support', getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return { success: false };
+    }
+  },
+
+  updateSupportTicket: async (ticketId, status, responseMessage) => {
+    try {
+      const res = await axios.put(`http://localhost:5000/api/support/${ticketId}`, { status, responseMessage }, getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return { success: false };
+    }
+  },
+
   // ─── Business Intelligence APIs ─────────────────────────────────────────────
   getBIDashboard: async (startDate, endDate) => {
     try {

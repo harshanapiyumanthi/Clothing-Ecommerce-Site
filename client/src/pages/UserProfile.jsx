@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiUser, FiPackage, FiMapPin, FiPhone, FiMail, FiCalendar, FiStar, FiRotateCcw, FiBell, FiCamera, FiLock, FiPlus, FiTrash2, FiHelpCircle, FiSend } from 'react-icons/fi';
+import axios from 'axios';
+import { FiUser, FiPackage, FiMapPin, FiPhone, FiMail, FiCalendar, FiStar, FiRotateCcw, FiBell, FiCamera, FiLock, FiPlus, FiTrash2, FiHelpCircle, FiSend, FiSettings } from 'react-icons/fi';
 import Breadcrumb from '../components/Breadcrumb';
 
 const UserProfile = () => {
@@ -23,6 +24,15 @@ const UserProfile = () => {
   const [avatar, setAvatar] = useState(null);
   const [savedDesigns, setSavedDesigns] = useState([]);
 
+  // CRM & Communication States
+  const [preferences, setPreferences] = useState({
+    favoriteColors: '',
+    favoriteSizes: '',
+    marketingOptIn: true
+  });
+  const [notificationsList, setNotificationsList] = useState([]);
+  const [supportTickets, setSupportTickets] = useState([]);
+
   useEffect(() => {
     if (!userInfo) {
       navigate('/login?redirect=profile');
@@ -39,6 +49,27 @@ const UserProfile = () => {
       { id: 1, type: 'Home', address: '123 Atelier Lane', city: 'Colombo', postalCode: '00700', isDefault: true },
       { id: 2, type: 'Office', address: '45 Business Park', city: 'Colombo', postalCode: '00300', isDefault: false }
     ]);
+
+    const fetchCrmData = async () => {
+      try {
+        const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+        
+        // Fetch Live Notifications
+        const notifRes = await axios.get('/api/notifications?limit=20', config).catch(() => ({ data: { notifications: [] } }));
+        if (notifRes.data.notifications.length > 0) {
+          setNotificationsList(notifRes.data.notifications);
+        }
+
+        // Fetch Live Support Tickets
+        const ticketRes = await axios.get('/api/support/my-tickets', config).catch(() => ({ data: { tickets: [] } }));
+        if (ticketRes.data.tickets.length > 0) {
+          setSupportTickets(ticketRes.data.tickets);
+        }
+      } catch (error) {
+        console.error('Failed to load CRM data', error);
+      }
+    };
+    fetchCrmData();
 
     const allOrders = JSON.parse(localStorage.getItem('admin_orders') || '[]');
     const filtered = allOrders.filter(o => o.user?.email?.toLowerCase() === userInfo.email?.toLowerCase());
@@ -220,6 +251,7 @@ const UserProfile = () => {
 
             <nav className="flex lg:flex-col gap-2 overflow-x-auto custom-scrollbar pb-2 lg:pb-0">
               <NavButton id="profile" icon={FiUser} label="Profile & Security" />
+              <NavButton id="preferences" icon={FiSettings} label="My Preferences" />
               <NavButton id="addresses" icon={FiMapPin} label="Address Book" />
               <NavButton id="orders" icon={FiPackage} label="Order History" />
               {userInfo?.membershipTier === 'Premium' && (
@@ -366,6 +398,47 @@ const UserProfile = () => {
                   </div>
                 </form>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'preferences' && (
+            <div className="bg-white dark:bg-gray-900 border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
+              <div className="border-b border-[var(--border-color)] pb-3 flex items-center gap-2">
+                <FiSettings className="text-gold" size={20} />
+                <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">
+                  My Preferences
+                </h2>
+              </div>
+              <p className="text-xs text-gray-500 mb-6">Customize your Elegance experience. We use this information to recommend products tailored to your unique style.</p>
+              
+              <form onSubmit={(e) => { e.preventDefault(); toast.success('Preferences saved successfully!'); }} className="space-y-6 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-1.5">
+                    <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px]">Favorite Colors</label>
+                    <input type="text" placeholder="e.g., Black, Gold, Emerald" value={preferences.favoriteColors} onChange={(e) => setPreferences({...preferences, favoriteColors: e.target.value})} className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="font-bold text-gray-555 uppercase tracking-wide text-[10px]">Usual Sizes</label>
+                    <input type="text" placeholder="e.g., UK 10, Medium" value={preferences.favoriteSizes} onChange={(e) => setPreferences({...preferences, favoriteSizes: e.target.value})} className="w-full px-4 py-3 border border-[var(--border-color)] bg-transparent rounded outline-none focus:border-gold" />
+                  </div>
+                </div>
+
+                <div className="border-t border-[var(--border-color)] pt-6 space-y-4">
+                  <h3 className="font-bold text-sm tracking-widest uppercase">Communication Settings</h3>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={preferences.marketingOptIn} onChange={(e) => setPreferences({...preferences, marketingOptIn: e.target.checked})} className="w-4 h-4 accent-gold" />
+                      <span className="text-gray-600 dark:text-gray-400 font-semibold">Receive exclusive offers, birthday gifts, and early access to new collections</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button type="submit" className="px-8 py-3 bg-gold hover:bg-black text-white text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-sm cursor-pointer">
+                    Save Preferences
+                  </button>
+                </div>
+              </form>
             </div>
           )}
 
@@ -585,31 +658,37 @@ const UserProfile = () => {
 
           {activeTab === 'notifications' && (
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] p-6 sm:p-8 rounded-2xl space-y-6">
-              <div className="border-b border-[var(--border-color)] pb-3 flex items-center gap-2">
-                <FiBell className="text-gold" size={20} />
-                <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">Notifications</h2>
+              <div className="border-b border-[var(--border-color)] pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FiBell className="text-gold" size={20} />
+                  <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">Notifications</h2>
+                </div>
+                <button className="text-[10px] text-gold uppercase tracking-wider font-bold hover:underline cursor-pointer">Mark All Read</button>
               </div>
               <div className="space-y-4">
-                <div className="p-4 bg-gold/5 border border-gold/20 rounded-xl flex items-start gap-4 transition-colors hover:bg-gold/10 cursor-pointer">
-                  <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center text-gold shrink-0">
-                    <FiPackage size={14} />
+                {notificationsList.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <FiBell size={36} className="mx-auto text-gray-300 mb-3 stroke-1" />
+                    <p className="text-xs font-semibold">You're all caught up!</p>
+                    <p className="text-[10px] mt-1">We will notify you here when there are updates.</p>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-[var(--text-color)]">Order Shipped</h4>
-                    <p className="text-[10px] text-gray-500 mt-1">Your order #ord-1204 has been shipped and is on its way to you.</p>
-                    <p className="text-[9px] text-gold font-semibold mt-2 uppercase tracking-wider">2 days ago</p>
-                  </div>
-                </div>
-                <div className="p-4 border border-[var(--border-color)] rounded-xl flex items-start gap-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 shrink-0">
-                    <FiStar size={14} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-[var(--text-color)]">Welcome to Elegance</h4>
-                    <p className="text-[10px] text-gray-500 mt-1">Thank you for joining. Explore our latest luxury collections.</p>
-                    <p className="text-[9px] text-gray-400 font-semibold mt-2 uppercase tracking-wider">1 week ago</p>
-                  </div>
-                </div>
+                ) : (
+                  notificationsList.map(n => (
+                    <div key={n._id} className={`p-4 border ${!n.isRead ? 'border-gold/40 bg-gold/5 shadow-sm' : 'border-[var(--border-color)] bg-[var(--card-bg)]'} rounded-xl flex items-start gap-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer`}>
+                      <div className={`w-8 h-8 rounded-full ${!n.isRead ? 'bg-gold text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'} flex items-center justify-center shrink-0 shadow-inner`}>
+                        {n.type === 'SupportTicket' ? <FiHelpCircle size={14} /> : n.type === 'AbandonedCart' ? <FiShoppingBag size={14} /> : <FiBell size={14} />}
+                      </div>
+                      <div className="flex-grow">
+                        <h4 className={`text-xs font-bold ${!n.isRead ? 'text-gold' : 'text-[var(--text-color)]'}`}>{n.title}</h4>
+                        <p className="text-[10px] text-gray-500 mt-1 leading-relaxed">{n.message}</p>
+                        <p className="text-[9px] text-gray-400 font-semibold mt-2 uppercase tracking-wider font-mono">{new Date(n.createdAt).toLocaleDateString()} at {new Date(n.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                      </div>
+                      {!n.isRead && (
+                        <div className="w-2 h-2 rounded-full bg-gold shrink-0 mt-2"></div>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -621,23 +700,80 @@ const UserProfile = () => {
                 <h2 className="text-lg font-bold uppercase tracking-widest text-[var(--text-color)]">Help & Support</h2>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4 text-xs">
-                  <h3 className="font-bold text-sm">Need Assistance?</h3>
-                  <p className="text-gray-500 leading-relaxed">Our fashion consultants and support team are available 24/7 to assist you with sizing, custom orders, and returns.</p>
-                  <div className="space-y-2">
-                    <p className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><FiPhone className="text-gold" /> +94 11 234 5678</p>
-                    <p className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><FiMail className="text-gold" /> support@elegance.com</p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div className="space-y-4 text-xs">
+                    <h3 className="font-bold text-sm">Need Assistance?</h3>
+                    <p className="text-gray-500 leading-relaxed">Our fashion consultants and support team are available 24/7 to assist you with sizing, custom orders, and returns.</p>
+                    <div className="space-y-2">
+                      <p className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><FiPhone className="text-gold" /> +94 11 234 5678</p>
+                      <p className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><FiMail className="text-gold" /> support@elegance.com</p>
+                    </div>
                   </div>
+
+                  <form className="space-y-3 bg-gray-50 dark:bg-gray-800/50 p-5 rounded-xl border border-[var(--border-color)]" onSubmit={async (e) => { 
+                    e.preventDefault(); 
+                    const formData = new FormData(e.target);
+                    try {
+                      await axios.post('/api/support', {
+                        subject: formData.get('subject'),
+                        category: formData.get('category'),
+                        message: formData.get('message')
+                      }, { headers: { Authorization: `Bearer ${userInfo.token}` } });
+                      toast.success('Support ticket created successfully!');
+                      e.target.reset();
+                      // Quick re-fetch to show new ticket
+                      const res = await axios.get('/api/support/my-tickets', { headers: { Authorization: `Bearer ${userInfo.token}` } });
+                      setSupportTickets(res.data.tickets || []);
+                    } catch(err) { 
+                      toast.error('Failed to create ticket'); 
+                    }
+                  }}>
+                    <h4 className="font-bold text-xs uppercase tracking-widest mb-3">Open a Ticket</h4>
+                    <input name="subject" type="text" placeholder="Subject" className="w-full px-4 py-2 border border-[var(--border-color)] bg-[var(--card-bg)] rounded text-xs outline-none focus:border-gold" required />
+                    <select name="category" className="w-full px-4 py-2 border border-[var(--border-color)] bg-[var(--card-bg)] rounded text-xs outline-none focus:border-gold" required>
+                      <option value="Order Issue">Order Issue</option>
+                      <option value="Customization">Customization</option>
+                      <option value="Return/Exchange">Return/Exchange</option>
+                      <option value="Membership">Membership</option>
+                      <option value="Payment">Payment</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <textarea name="message" rows="4" placeholder="How can we help you today?" className="w-full px-4 py-2 border border-[var(--border-color)] bg-[var(--card-bg)] rounded text-xs outline-none focus:border-gold resize-none" required></textarea>
+                    <button type="submit" className="w-full py-2.5 bg-gold hover:bg-black text-white text-xs font-bold uppercase tracking-widest rounded transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-gold/20">
+                      <FiSend /> Submit Ticket
+                    </button>
+                  </form>
                 </div>
 
-                <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); toast.success('Message sent to support!'); }}>
-                  <input type="text" placeholder="Subject" className="w-full px-4 py-2 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold" required />
-                  <textarea rows="4" placeholder="How can we help you today?" className="w-full px-4 py-2 border border-[var(--border-color)] bg-transparent rounded text-xs outline-none focus:border-gold resize-none" required></textarea>
-                  <button type="submit" className="w-full py-2.5 bg-gold hover:bg-black text-white text-xs font-bold uppercase tracking-widest rounded transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-gold/20">
-                    <FiSend /> Send Message
-                  </button>
-                </form>
+                <div className="space-y-4 border-t lg:border-t-0 lg:border-l border-[var(--border-color)] pt-6 lg:pt-0 lg:pl-8">
+                  <h3 className="font-bold text-sm tracking-widest uppercase mb-4">My Tickets</h3>
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                    {supportTickets.length === 0 ? (
+                      <div className="text-center py-8 text-gray-400">
+                        <p className="text-xs">No active support tickets.</p>
+                      </div>
+                    ) : (
+                      supportTickets.map(ticket => (
+                        <div key={ticket._id} className="p-4 border border-[var(--border-color)] rounded-xl hover:border-gold transition-colors cursor-pointer bg-[var(--card-bg)] shadow-sm">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-[10px] font-bold text-gold uppercase tracking-wider">{ticket.category}</span>
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest ${
+                              ticket.status === 'Open' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                              ticket.status === 'Closed' ? 'bg-gray-100 text-gray-500 dark:bg-gray-800' :
+                              'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                            }`}>{ticket.status}</span>
+                          </div>
+                          <h4 className="font-bold text-xs text-[var(--text-color)] truncate">{ticket.subject}</h4>
+                          <p className="text-[10px] text-gray-500 mt-1 line-clamp-2 leading-relaxed">
+                            {ticket.messages[0]?.message}
+                          </p>
+                          <p className="text-[9px] text-gray-400 mt-3 font-mono">ID: {ticket._id.slice(-6)} • Updated: {new Date(ticket.updatedAt).toLocaleDateString()}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}

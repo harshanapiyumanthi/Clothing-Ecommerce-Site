@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
+import axios from 'axios';
 import { FiShoppingBag, FiUser, FiUserPlus, FiMenu, FiLogOut, FiSun, FiMoon, FiSearch, FiHeart, FiBell } from 'react-icons/fi';
 import { logout } from '../redux/slices/authSlice';
 
@@ -23,6 +24,48 @@ const Navbar = () => {
   const [productsList, setProductsList] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
   const searchRef = useRef(null);
+
+  // Notification States
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (userInfo) {
+      const fetchNotifications = async () => {
+        try {
+          const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+          const { data } = await axios.get('/api/notifications?limit=5', config);
+          setNotifications(data.notifications || []);
+          
+          const countRes = await axios.get('/api/notifications/unread-count', config);
+          setUnreadCount(countRes.data.count || 0);
+        } catch (error) {
+          console.error("Failed to load notifications");
+        }
+      };
+      fetchNotifications();
+    }
+  }, [userInfo]);
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await axios.put(`/api/notifications/${id}/read`, {}, { headers: { Authorization: `Bearer ${userInfo.token}` } });
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      setNotifications(notifications.map(n => n._id === id ? { ...n, isRead: true } : n));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await axios.put(`/api/notifications/read-all`, {}, { headers: { Authorization: `Bearer ${userInfo.token}` } });
+      setUnreadCount(0);
+      setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     // Sync theme on mount
@@ -156,31 +199,35 @@ const Navbar = () => {
               <div className="relative group cursor-pointer flex items-center h-full">
                 <div className="py-2 relative hover:text-gold transition-colors">
                   <FiBell size={20} />
-                  <span className="absolute top-1 -right-1.5 bg-rose-500 text-white text-[8px] font-bold rounded-full h-4 w-4 flex items-center justify-center border border-[var(--card-bg)] shadow-sm">
-                    3
-                  </span>
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 -right-1.5 bg-rose-500 text-white text-[8px] font-bold rounded-full h-4 w-4 flex items-center justify-center border border-[var(--card-bg)] shadow-sm">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </div>
                 <div className="absolute right-0 top-full mt-1 w-72 glass rounded-xl shadow-xl py-1 hidden group-hover:block border border-[var(--border-color)] overflow-hidden">
                   <div className="px-4 py-3 text-[10px] text-gray-500 uppercase tracking-widest border-b border-[var(--border-color)] flex justify-between bg-gray-50/50 dark:bg-gray-900/50">
                     <span className="font-bold">Recent Alerts</span>
-                    <button className="text-gold hover:underline">Mark read</button>
+                    {unreadCount > 0 && (
+                      <button onClick={handleMarkAllRead} className="text-gold hover:underline font-bold">Mark all read</button>
+                    )}
                   </div>
                   <div className="max-h-[300px] overflow-y-auto">
-                    <div className="px-4 py-3 border-b border-[var(--border-color)] hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
-                      <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Order Dispatched</p>
-                      <p className="text-[10px] text-gray-500 mt-1">Your Premium order #1029 is out for delivery.</p>
-                      <p className="text-[9px] text-gold mt-1.5 font-bold">2 hours ago</p>
-                    </div>
-                    <div className="px-4 py-3 border-b border-[var(--border-color)] hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
-                      <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Flash Sale Access</p>
-                      <p className="text-[10px] text-gray-500 mt-1">Use code ELEGANCE10 for VIP access to accessories.</p>
-                      <p className="text-[9px] text-gray-400 mt-1.5 font-bold">1 day ago</p>
-                    </div>
-                    <div className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
-                      <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Security Notice</p>
-                      <p className="text-[10px] text-gray-500 mt-1">New sign-in detected on Chrome (Windows).</p>
-                      <p className="text-[9px] text-gray-400 mt-1.5 font-bold">2 days ago</p>
-                    </div>
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-xs text-gray-500">You're all caught up!</div>
+                    ) : (
+                      notifications.map(n => (
+                        <div 
+                          key={n._id} 
+                          onClick={() => !n.isRead && handleMarkAsRead(n._id)}
+                          className={`px-4 py-3 border-b border-[var(--border-color)] hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer ${!n.isRead ? 'bg-gold/5 dark:bg-gold/10' : ''}`}
+                        >
+                          <p className={`text-xs font-bold ${!n.isRead ? 'text-gold' : 'text-gray-800 dark:text-gray-200'}`}>{n.title}</p>
+                          <p className="text-[10px] text-gray-500 mt-1">{n.message}</p>
+                          <p className="text-[9px] text-gray-400 mt-1.5 font-bold">{new Date(n.createdAt).toLocaleDateString()}</p>
+                        </div>
+                      ))
+                    )}
                   </div>
                   <div className="px-4 py-2 border-t border-[var(--border-color)] text-center bg-gray-50/50 dark:bg-gray-900/50">
                     <Link to="/profile" className="text-[10px] text-gold uppercase tracking-widest font-bold hover:underline">Notification Center</Link>
