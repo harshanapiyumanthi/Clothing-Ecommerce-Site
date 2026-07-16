@@ -13,7 +13,7 @@ const {
     getBICartPayments,
     getBIInventory,
     getBIFeedbackSearches,
-    getBIAletrs,
+    getBIAlerts,
     getBIDecisionSupport,
     exportBIReport,
     trackPublicEvent
@@ -34,7 +34,7 @@ router.get('/marketing', protect, admin, getBIMarketing);
 router.get('/cart-payments', protect, admin, getBICartPayments);
 router.get('/inventory', protect, admin, getBIInventory);
 router.get('/feedback-searches', protect, admin, getBIFeedbackSearches);
-router.get('/alerts', protect, admin, getBIAletrs);
+router.get('/alerts', protect, admin, getBIAlerts);
 router.get('/decision-support', protect, admin, getBIDecisionSupport);
 router.get('/reports/export', protect, admin, exportBIReport);
 

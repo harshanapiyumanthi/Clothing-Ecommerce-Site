@@ -574,7 +574,7 @@ const getBIFeedbackSearches = asyncHandler(async (req, res) => {
 // @desc    Get Operational Alerts
 // @route   GET /api/bi/alerts
 // @access  Private/Admin
-const getBIAletrs = asyncHandler(async (req, res) => {
+const getBIAlerts = asyncHandler(async (req, res) => {
     const alerts = [];
 
     // 1. Low stock alerts
@@ -723,7 +723,7 @@ module.exports = {
     getBICartPayments,
     getBIInventory,
     getBIFeedbackSearches,
-    getBIAletrs,
+    getBIAlerts,
     getBIDecisionSupport,
     exportBIReport
 };
